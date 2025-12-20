@@ -1,0 +1,13 @@
+{
+    "java.errors.incompleteClasspath.severity": "ignore",
+    "java.jdt.ls.java.home":"D:/java/jdk1.8",
+    "java.configuration.maven.userSettings": "D:/LeStoreDownload/apache-maven-3.9.12-bin/apache-maven-3.9.12/conf/settings.xml",
+    "maven.executable.path": "D:/LeStoreDownload/apache-maven-3.9.12-bin/apache-maven-3.9.12/bin/mvn.cmd",
+    "maven.terminal.useJavaHome": true,
+    "maven.terminal.customEnv": [
+        {
+            "environmentVariable": "JAVA_HOME",
+            "value": "D:/LeStoreDownload/jdk-17.0.17_windows-x64_bin/jdk-17.0.17"
+        }
+    ],
+}
