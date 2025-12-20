@@ -86,35 +86,38 @@ import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Crop, MagicStick, Delete } from '@element-plus/icons-vue'
 
-// 1. 路由与状态定义
+// 路由与状态定义
 const route = useRoute()
 const router = useRouter()
 const imageId = route.params.id // 获取 URL 中的 id
 const imageInfo = ref(null)
 const loading = ref(false)
 
-// 2. 交互状态控制
+// 交互状态控制
 const showCrop = ref(false) // 控制裁剪弹窗
 const tags = ref(['风景', '高清', '壁纸']) // 默认标签模拟数据
 const inputVisible = ref(false) // 控制标签输入框显示
 const inputValue = ref('')
 const InputRef = ref(null)
 
-// 3. 获取详情数据
+// 获取详情数据
 const fetchDetail = async () => {
   loading.value = true
   try {
-    // 真实场景：调用 GetImageDetail 接口
+    // 调用GetImageDetail接口
     // const res = await request.get(`/images/${imageId}`)
     
-    // 模拟场景：因为后端暂时只写了 list 接口，我们先拉取列表再过滤
-    // 注意：实际开发中请替换为后端真实的详情接口
+    // 因为后端暂时只写了list接口，先拉取列表再过滤
     const res = await request.get('/images/list', { params: { page: 1, size: 100 } })
     const found = res.records.find(item => item.imageId.toString() === imageId.toString())
     
     if (found) {
       imageInfo.value = found
-      // 如果后端返回了 tags，在这里覆盖：tags.value = found.tags || []
+      if (found.tags && found.tags.length > 0) {
+        tags.value = found.tags
+      } else {
+        tags.value = [] 
+      }
     } else {
       ElMessage.error('未找到该图片信息')
       router.push('/gallery')
@@ -126,7 +129,7 @@ const fetchDetail = async () => {
   }
 }
 
-// 4. 删除图片
+// 删除图片
 const deleteImage = () => {
   ElMessageBox.confirm(
     '确定要永久删除这张图片吗? 删除后无法恢复。',
@@ -145,7 +148,7 @@ const deleteImage = () => {
     .catch(() => {})
 }
 
-// 5. AI 标签生成（模拟）
+// AI 标签生成
 const generateAiTags = () => {
   ElMessage.info('正在调用 AI 模型分析图片内容...')
   // 模拟异步请求
@@ -156,7 +159,7 @@ const generateAiTags = () => {
   }, 1500)
 }
 
-// 6. 标签管理逻辑
+// 标签管理逻辑
 const removeTag = (index) => {
   tags.value.splice(index, 1)
 }
@@ -176,14 +179,14 @@ const handleInputConfirm = () => {
   inputValue.value = ''
 }
 
-// 7. 工具函数
+// 工具函数
 const getImageUrl = (path, isThumbnail = true) => {
   if (!path) return ''
   
-  // 1. 获取纯文件名 (例如从 D:\data\images\thumbs\abc.jpg 提取 abc.jpg)
+  // 获取纯文件名 (例如从 D:\data\images\thumbs\abc.jpg 提取 abc.jpg)
   const filename = path.replace(/\\/g, '/').split('/').pop()
   
-  // 2. 根据是缩略图还是原图，拼接不同的 URL 前缀
+  // 根据是缩略图还是原图，拼接不同的 URL 前缀
   // 注意：这里的 /uploads/ 对应 vite.config.js 的代理，
   // thumb/ 和 original/ 对应后端 WebConfig 的映射
   if (isThumbnail) {

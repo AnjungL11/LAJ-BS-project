@@ -2,6 +2,7 @@ package com.imagemanager.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @TableName("images")
@@ -15,7 +16,11 @@ public class Image {
     private Long fileSize;
     private LocalDateTime uploadedAt;
     
-    // 非数据库字段，用于返回给前端
+    // 元数据对象
     @TableField(exist = false)
     private ImageMetadata metadata;
+
+    // 标签列表
+    @TableField(exist = false)
+    private List<String> tags;
 }
