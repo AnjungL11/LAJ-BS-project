@@ -2,11 +2,12 @@ package com.imagemanager.utils;
 import com.imagemanager.entity.ImageMetadata;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.imaging.Imaging;
-import org.apache.commons.imaging.common.ImageMetadata.ImageMetadataItem;
+// import org.apache.commons.imaging.common.ImageMetadata.ImageMetadataItem;
 import org.apache.commons.imaging.formats.jpeg.JpegImageMetadata;
 import org.apache.commons.imaging.formats.tiff.TiffImageMetadata;
-import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;
-import org.springframework.web.multipart.MultipartFile;
+// import org.apache.commons.imaging.formats.tiff.constants.ExifTagConstants;wsx 
+import org.apache.commons.imaging.formats.tiff.constants.TiffTagConstants;
+// import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 
@@ -31,7 +32,9 @@ public class ImageProcessUtil {
                 
                 if (exif != null) {
                     // 获取相机型号
-                    String model = exif.getFieldValue(ExifTagConstants.EXIF_TAG_MODEL)[0];
+                    // String model = exif.getFieldValue(ExifTagConstants.EXIF_TAG_MODEL)[0];
+                    // 使用 TiffTagConstants
+                    String model = exif.getFieldValue(TiffTagConstants.TIFF_TAG_MODEL)[0];
                     meta.setCameraModel(model);
                     // 获取拍摄时间 (这里简化处理，实际需解析字符串)
                     // meta.setTakenTime(...); 
