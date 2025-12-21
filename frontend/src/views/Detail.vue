@@ -104,7 +104,19 @@
         </div>
         
         <div class="adjust-panel">
-            <div class="panel-title">色彩调整</div>
+            <div class="panel-title">编辑控制</div>
+            
+            <div class="control-group">
+                <span class="label">旋转 (Rotate)</span>
+                <div class="rotate-buttons">
+                    <el-button-group>
+                        <el-button :icon="RefreshLeft" @click="rotateLeft">向左 90°</el-button>
+                        <el-button :icon="RefreshRight" @click="rotateRight">向右 90°</el-button>
+                    </el-button-group>
+                </div>
+            </div>
+
+            <el-divider /> <div class="panel-title" style="margin-top: 10px;">色彩调整</div>
             
             <div class="slider-group">
                 <span class="label">亮度 (Brightness)</span>
@@ -150,7 +162,7 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Crop, MagicStick, Delete } from '@element-plus/icons-vue'
+import { Crop, MagicStick, Delete, InfoFilled, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 
@@ -216,6 +228,19 @@ const destroyCropper = () => {
         cropperInstance.value = null
     }
     resetParams()
+}
+
+// 旋转图片
+const rotateLeft = () => {
+    if (cropperInstance.value) {
+        cropperInstance.value.rotate(-90) // 逆时针旋转90度
+    }
+}
+
+const rotateRight = () => {
+    if (cropperInstance.value) {
+        cropperInstance.value.rotate(90) // 顺时针旋转90度
+    }
 }
 
 const resetParams = () => {
@@ -613,13 +638,49 @@ onMounted(() => {
     border-left: 1px solid #eee;
     display: flex;
     flex-direction: column;
+    overflow-y: auto;   /* 内容过多时显示垂直滚动条 */
+    overflow-x: hidden; /* 隐藏水平滚动条 */
+}
+
+.adjust-panel::-webkit-scrollbar {
+    width: 6px;
+}
+.adjust-panel::-webkit-scrollbar-thumb {
+    background: #dcdfe6;
+    border-radius: 3px;
+}
+.adjust-panel::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .panel-title {
     font-size: 16px;
     font-weight: bold;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     color: #333;
+}
+
+/* 旋转按钮区样式 */
+.control-group {
+    margin-bottom: 15px;
+}
+.control-group .label {
+    display: block;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+}
+.rotate-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+/* 让按钮组占满宽度 */
+.rotate-buttons .el-button-group {
+    display: flex;
+    width: 100%;
+}
+.rotate-buttons .el-button {
+    flex: 1; /* 两个按钮平分宽度 */
 }
 
 .slider-group {
