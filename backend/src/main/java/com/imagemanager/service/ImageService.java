@@ -132,7 +132,7 @@ public class ImageService {
                 .eq("tag_id", tag.getTagId())
         );
     }
-    
+
     // 创建标签并关联，防止重复
     private void addSystemTag(Long imageId, String tagName) {
         // 检查标签是否存在，不存在则创建
@@ -283,5 +283,34 @@ public class ImageService {
                 img.setTags(tagNames.stream().map(Object::toString).toList());
             }
         });
+    }
+
+    // 批量删除图片
+    @Transactional
+    public void deleteBatch(List<Long> imageIds, Long userId) {
+        for (Long id : imageIds) {
+            // 查找图片，只能删除用户自己的图片
+            Image img = imageMapper.selectOne(new QueryWrapper<Image>()
+                    .eq("image_id", id)
+                    .eq("user_id", userId));
+            if (img != null) {
+                // 删除物理文件(包括原图和缩略图)
+                deleteFile(img.getStoragePath());
+                deleteFile(img.getThumbnailPath());
+                // 删除数据库关联数据
+                imageTagMapper.delete(new QueryWrapper<ImageTag>().eq("image_id", id));
+                metadataMapper.delete(new QueryWrapper<ImageMetadata>().eq("image_id", id));
+                // 删除主表数据
+                imageMapper.deleteById(id);
+            }
+        }
+    }
+
+    // 删除文件辅助函数
+    private void deleteFile(String path) {
+        if (path != null) {
+            File file = new File(path);
+            if (file.exists()) file.delete();
+        }
     }
 }

@@ -14,66 +14,31 @@
             <el-button :icon="Search" @click="handleSearch" />
           </template>
         </el-input>
-        
-        <el-button plain :icon="Filter" @click="showFilter = true" class="filter-btn">
-          筛选
-        </el-button>
+        <el-button plain :icon="Filter" @click="showFilter = true">筛选</el-button>
       </div>
 
       <div class="actions">
         <el-tooltip content="全屏播放当前列表的所有图片" placement="bottom">
-          <el-button type="success" :icon="VideoPlay" @click="playAll">
-            幻灯片放映
-          </el-button>
+          <el-button type="success" :icon="VideoPlay" @click="playAll">幻灯片放映</el-button>
         </el-tooltip>
 
-        <el-button 
-          v-if="!isSelectionMode" 
-          type="primary" 
-          plain 
-          :icon="List" 
-          @click="enterSelectionMode"
-        >
-          选择图片
+        <el-button v-if="!isSelectionMode" type="primary" plain :icon="List" @click="enterSelectionMode">
+          选择 / 管理
         </el-button>
-        <el-button 
-          v-else 
-          plain 
-          @click="exitSelectionMode"
-        >
-          取消选择
-        </el-button>
+        <el-button v-else plain @click="exitSelectionMode">退出选择</el-button>
 
-        <el-button type="primary" :icon="Upload" @click="$router.push('/upload')">
-          上传
-        </el-button>
+        <el-button type="primary" :icon="Upload" @click="$router.push('/upload')">上传</el-button>
       </div>
     </div>
 
     <el-drawer v-model="showFilter" title="高级检索" size="300px">
-       <el-form :model="searchForm" label-position="top">
-        <el-form-item label="包含标签">
-          <el-select v-model="searchForm.tags" multiple filterable allow-create default-first-option placeholder="输入标签回车" style="width: 100%">
-            <el-option label="风景" value="风景" /><el-option label="人物" value="人物" /><el-option v-for="y in 5" :key="y" :label="`${2020+y}年`" :value="`${2020+y}年`" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="设备型号"><el-input v-model="searchForm.cameraModel" /></el-form-item>
-        <el-form-item label="时间范围">
-          <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DDTHH:mm:ss" style="width: 100%" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
+        <template #footer>
         <div style="flex: auto"><el-button @click="resetFilter">重置</el-button><el-button type="primary" @click="handleSearch">搜索</el-button></div>
       </template>
     </el-drawer>
 
     <el-row :gutter="20" v-loading="loading" class="image-grid">
-      <el-col 
-        :xs="12" :sm="8" :md="6" :lg="4" 
-        v-for="img in imageList" 
-        :key="img.imageId" 
-        class="img-col"
-      >
+      <el-col :xs="12" :sm="8" :md="6" :lg="4" v-for="img in imageList" :key="img.imageId" class="img-col">
         <el-card 
           :body-style="{ padding: '0px' }" 
           shadow="hover" 
@@ -82,7 +47,7 @@
           @click="handleCardClick(img)"
         >
           <div v-if="isSelectionMode" class="checkbox-overlay">
-             <el-checkbox 
+            <el-checkbox 
               :model-value="selectedIds.has(img.imageId)" 
               @change="(val) => toggleSelection(img.imageId, val)"
               @click.stop 
@@ -91,9 +56,7 @@
 
           <div class="image-wrapper">
             <img :src="getImageUrl(img.thumbnailPath)" class="image" loading="lazy"/>
-            <div class="play-overlay" v-if="!isSelectionMode">
-               <el-icon><VideoPlay /></el-icon>
-            </div>
+            <div class="play-overlay" v-if="!isSelectionMode"><el-icon><VideoPlay /></el-icon></div>
           </div>
           <div class="info">
             <div class="filename" :title="img.originalFilename">{{ img.originalFilename }}</div>
@@ -109,44 +72,51 @@
 
     <transition name="el-zoom-in-bottom">
       <div v-if="isSelectionMode" class="selection-bar">
-        <div class="selection-info">
-          已选择 <b>{{ selectedIds.size }}</b> 张图片
+        
+        <div class="selection-left">
+          <el-checkbox 
+            v-model="isAllSelected" 
+            @change="handleSelectAll"
+            label="全选当前页" 
+            size="large"
+          />
+          <span class="divider">|</span>
+          <span class="selection-info">已选 <b>{{ selectedIds.size }}</b> 张</span>
         </div>
+
         <div class="selection-actions">
           <el-button text bg @click="exitSelectionMode">取消</el-button>
+          
           <el-button 
             type="success" 
             :icon="VideoPlay" 
             :disabled="selectedIds.size === 0"
             @click="playSelected"
           >
-            播放选中图片
+            播放
           </el-button>
-          </div>
+
+          <el-button 
+            type="danger" 
+            :icon="Delete" 
+            plain 
+            :disabled="selectedIds.size === 0"
+            @click="handleBatchDelete"
+          >
+            删除
+          </el-button>
+        </div>
       </div>
     </transition>
 
-    <el-dialog 
-      v-model="carouselVisible" 
-      fullscreen 
-      append-to-body 
-      class="carousel-dialog" 
-      :show-close="true"
-    >
-      <el-carousel 
-        :autoplay="true" 
-        :interval="4000" 
-        arrow="always" 
-        height="100vh" 
-        indicator-position="none"
-        pause-on-hover
-      >
+    <el-dialog v-model="carouselVisible" fullscreen append-to-body class="carousel-dialog" :show-close="true">
+      <el-carousel :autoplay="true" :interval="4000" arrow="always" height="100vh" indicator-position="none" pause-on-hover>
         <el-carousel-item v-for="img in carouselList" :key="img.imageId">
           <div class="carousel-item-wrapper">
             <img :src="getImageUrl(img.storagePath, false)" class="carousel-image" />
             <div class="carousel-caption">
               <h3>{{ img.originalFilename }}</h3>
-              <p>{{ img.tags ? img.tags.join(' · ') : '暂无标签' }}</p>
+              <p>{{ img.tags ? img.tags.join(' · ') : '' }}</p>
             </div>
           </div>
         </el-carousel-item>
@@ -157,11 +127,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue' // 引入 computed
 import request from '../utils/request'
 import { useRouter } from 'vue-router'
-import { Search, Upload, Filter, VideoPlay, List } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { Search, Upload, Filter, VideoPlay, List, Delete } from '@element-plus/icons-vue' // 引入 Delete 图标
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
 const imageList = ref([])
@@ -175,6 +145,18 @@ const isSelectionMode = ref(false)
 const selectedIds = ref(new Set())
 const carouselVisible = ref(false)
 const carouselList = ref([])
+
+// 判断是否全选了当前页
+// 当前页所有图片的ID都在selectedIds里，且列表不为空
+const isAllSelected = computed({
+  get: () => {
+    if (imageList.value.length === 0) return false
+    return imageList.value.every(img => selectedIds.value.has(img.imageId))
+  },
+  set: (val) => {
+    // set逻辑交给handleSelectAll处理
+  }
+})
 
 const searchForm = reactive({
   filename: '',
@@ -206,7 +188,6 @@ const fetchImages = async () => {
 }
 
 // 播放逻辑
-
 // 播放所有
 const playAll = () => {
   if (imageList.value.length === 0) {
@@ -227,7 +208,6 @@ const playSelected = () => {
 }
 
 // 选择模式逻辑
-
 const enterSelectionMode = () => {
   isSelectionMode.value = true
 }
@@ -239,11 +219,8 @@ const exitSelectionMode = () => {
 
 const handleCardClick = (img) => {
   if (isSelectionMode.value) {
-    const id = img.imageId
-    if (selectedIds.value.has(id)) selectedIds.value.delete(id)
-    else selectedIds.value.add(id)
+    toggleSelection(img.imageId, !selectedIds.value.has(img.imageId))
   } else {
-    // 正常模式点击看详情
     router.push(`/detail/${img.imageId}`)
   }
 }
@@ -251,6 +228,44 @@ const handleCardClick = (img) => {
 const toggleSelection = (id, checked) => {
   if (checked) selectedIds.value.add(id)
   else selectedIds.value.delete(id)
+}
+
+// 全选逻辑
+const handleSelectAll = (checked) => {
+  if (checked) {
+    // 将当前页所有ID加入Set
+    imageList.value.forEach(img => selectedIds.value.add(img.imageId))
+  } else {
+    // 将当前页所有ID从Set移除
+    imageList.value.forEach(img => selectedIds.value.delete(img.imageId))
+  }
+}
+
+// 批量删除逻辑
+const handleBatchDelete = () => {
+  ElMessageBox.confirm(
+    `确定要永久删除这 ${selectedIds.value.size} 张图片吗？此操作无法恢复。`,
+    '批量删除警告',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    }
+  ).then(async () => {
+    try {
+      // 将Set转为Array发送给后端
+      const idsToDelete = Array.from(selectedIds.value)
+      await request.post('/images/batch-delete', idsToDelete)
+      
+      ElMessage.success('批量删除成功')
+      // 清空选中
+      selectedIds.value.clear()
+      // 刷新列表
+      fetchImages()
+    } catch (error) {
+      console.error(error)
+    }
+  })
 }
 
 // 通用逻辑
@@ -323,14 +338,29 @@ onMounted(fetchImages)
 .selection-bar {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
   background: #fff;
-  padding: 10px 30px;
+  padding: 10px 20px;
   border-radius: 50px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-  display: flex; align-items: center; gap: 20px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 30px; /* 增加间距 */
   z-index: 100;
   border: 1px solid #ebeef5;
+  min-width: 400px; /* 保证宽度 */
 }
-.selection-info { font-size: 14px; color: #606266; }
+
+.selection-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+.divider { color: #dcdfe6; }
+.selection-info { font-size: 14px; color: #606266; white-space: nowrap; }
+
+.selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
 /* 轮播样式 */
 /* 弹窗背景变黑，且铺满全屏 */
@@ -401,8 +431,12 @@ onMounted(fetchImages)
 }
 .carousel-caption h3 { margin: 0 0 5px 0; font-weight: normal; font-size: 18px; }
 .carousel-caption p { margin: 0; font-size: 14px; color: #ddd; }
+
 /* 移动端适配 */
 @media (max-width: 600px) {
-  .selection-bar { width: 90%; justify-content: space-between; padding: 10px 20px; }
+  .selection-bar { width: 95%; flex-direction: column; padding: 15px; border-radius: 20px; gap: 10px; }
+  .selection-left { width: 100%; justify-content: space-between; }
+  .selection-actions { width: 100%; justify-content: space-between; }
+  .selection-actions .el-button { flex: 1; }
 }
 </style>

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.imagemanager.dto.ImageSearchRequest;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -68,6 +69,13 @@ public class ImageController {
                 .size(rect.get("w"), rect.get("h"))
                 .toFile(outPath);
         return "Crop Success: " + outPath;
+    }
+
+    // 批量删除接口
+    @PostMapping("/batch-delete")
+    public String deleteBatch(@RequestBody List<Long> imageIds, @RequestAttribute("userId") Long userId) {
+        imageService.deleteBatch(imageIds, userId);
+        return "批量删除成功";
     }
 
     // MCP接口,大模型对话检索
