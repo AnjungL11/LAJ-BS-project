@@ -7,7 +7,7 @@ cd frontend
 安装相关依赖。
 ```powershell
 npm install
-npm install cropperjs
+npm install cropperjs@1.6.2
 ```
 运行前端。
 ```powershell

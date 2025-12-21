@@ -51,6 +51,16 @@ public class ImageController {
         return "标签添加成功";
     }
 
+    // 详情接口
+    @GetMapping("/{id}")
+    public Image getDetail(@PathVariable Long id) {
+        Image image = imageService.getDetail(id);
+        if (image == null) {
+            throw new RuntimeException("图片不存在");
+        }
+        return image;
+    }
+
     // 删除标签接口
     @DeleteMapping("/{imageId}/tags")
     public String removeTag(@PathVariable Long imageId, @RequestParam String tagName) {
@@ -76,6 +86,17 @@ public class ImageController {
     public String deleteBatch(@RequestBody List<Long> imageIds, @RequestAttribute("userId") Long userId) {
         imageService.deleteBatch(imageIds, userId);
         return "批量删除成功";
+    }
+
+    // 更新图片内容接口
+    @PostMapping("/{imageId}/content")
+    public String updateImageContent(
+            @PathVariable Long imageId,
+            @RequestParam("file") MultipartFile file,
+            @RequestAttribute("userId") Long userId
+    ) throws IOException {
+        imageService.updateImageContent(imageId, file, userId);
+        return "图片编辑保存成功";
     }
 
     // MCP接口,大模型对话检索
