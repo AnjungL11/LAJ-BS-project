@@ -3,6 +3,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.imagemanager.entity.Image;
 import com.imagemanager.service.ImageService;
 import com.imagemanager.service.McpService;
+
+import jakarta.servlet.http.HttpServletResponse;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -66,6 +68,20 @@ public class ImageController {
     public String removeTag(@PathVariable Long imageId, @RequestParam String tagName) {
         imageService.removeTag(imageId, tagName);
         return "标签删除成功";
+    }
+
+    // 重命名接口
+    @PostMapping("/{imageId}/rename")
+    public String rename(@PathVariable Long imageId, @RequestParam String newName) {
+        imageService.renameImage(imageId, newName);
+        return "重命名成功";
+    }
+
+    // 下载接口
+    // 不需要返回String，直接操作Response流
+    @GetMapping("/{imageId}/download")
+    public void download(@PathVariable Long imageId, HttpServletResponse response) {
+        imageService.downloadImage(imageId, response);
     }
     
     // 图片裁剪

@@ -20,6 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.nio.file.Files;
+import java.io.OutputStream;
+import java.io.FileInputStream;
+import java.net.URLEncoder;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Service
 public class ImageService {
@@ -363,5 +367,48 @@ public class ImageService {
         // 更新上传时间
         image.setUploadedAt(LocalDateTime.now());
         imageMapper.updateById(image);
+    }
+
+    // 重命名图片
+    @Transactional
+    public void renameImage(Long imageId, String newName) {
+        if (newName == null || newName.trim().isEmpty()) return;
+        Image image = imageMapper.selectById(imageId);
+        if (image != null) {
+            // 只修改数据库中的显示名称，不修改物理文件
+            image.setOriginalFilename(newName);
+            imageMapper.updateById(image);
+        }
+    }
+
+    // 下载图片流处理
+    public void downloadImage(Long imageId, HttpServletResponse response) {
+        try {
+            Image image = imageMapper.selectById(imageId);
+            if (image == null) throw new RuntimeException("图片不存在");
+            File file = new File(image.getStoragePath());
+            if (!file.exists()) throw new RuntimeException("物理文件丢失");
+            // 设置响应头
+            // 处理中文文件名乱码问题
+            String encodedFilename = URLEncoder.encode(image.getOriginalFilename(), "UTF-8").replaceAll("\\+", "%20");
+            response.reset();
+            response.setContentType("application/octet-stream");
+            response.setCharacterEncoding("utf-8");
+            response.setContentLength((int) file.length());
+            response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFilename);
+            // 读取文件并写入响应流
+            try (FileInputStream fis = new FileInputStream(file);
+                 OutputStream os = response.getOutputStream()) {
+                byte[] buffer = new byte[1024];
+                int len;
+                while ((len = fis.read(buffer)) > 0) {
+                    os.write(buffer, 0, len);
+                }
+                os.flush();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("下载失败");
+        }
     }
 }

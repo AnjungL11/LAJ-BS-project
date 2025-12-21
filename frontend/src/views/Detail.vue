@@ -8,6 +8,7 @@
       <div class="edit-toolbar">
          <el-button-group>
            <el-button type="primary" plain :icon="Crop" @click="openEditDialog">编辑/裁剪</el-button>
+           <el-button type="success" plain :icon="Download" @click="handleDownload">下载</el-button>
            <el-button type="danger" plain :icon="Delete" @click="deleteImage">删除</el-button>
          </el-button-group>
       </div>
@@ -19,10 +20,13 @@
         <h3 class="title">图片详情</h3>
         <el-descriptions :column="1" border size="default">
           <el-descriptions-item label="文件名">
-            <span :title="imageInfo?.originalFilename">{{ imageInfo?.originalFilename || '-' }}</span>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span :title="imageInfo?.originalFilename" style="margin-right: 10px; word-break: break-all;">
+                    {{ imageInfo?.originalFilename || '-' }}
+                </span>
+                <el-button link type="primary" :icon="Edit" @click="handleRename"></el-button>
+            </div>
           </el-descriptions-item>
-          <el-descriptions-item label="文件大小">{{ formatSize(imageInfo?.fileSize || 0) }}</el-descriptions-item>
-          <el-descriptions-item label="上传时间">{{ formatTime(imageInfo?.uploadedAt) }}</el-descriptions-item>
         </el-descriptions>
       </div>
       
@@ -202,6 +206,40 @@
         </span>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="downloadDialogVisible"
+      title="下载图片"
+      width="400px"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-form label-position="top">
+        <el-form-item label="请输入保存的文件名">
+          <el-input 
+            v-model="downloadFilename" 
+            placeholder="文件名" 
+            clearable
+            @keyup.enter="confirmDownload"
+          >
+            <template #append>.jpg</template>
+          </el-input>
+        </el-form-item>
+        <div class="tips-text">
+            <el-icon><InfoFilled /></el-icon> 
+            提示：点击确定后，浏览器将弹出保存窗口供您选择存储位置。
+        </div>
+      </el-form>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="downloadDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmDownload" :loading="downloading">
+            确定下载
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -210,7 +248,7 @@ import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import request from '../utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Crop, MagicStick, Delete, InfoFilled, RefreshLeft, RefreshRight } from '@element-plus/icons-vue'
+import { Crop, MagicStick, Delete, InfoFilled, RefreshLeft, RefreshRight, Download, Edit } from '@element-plus/icons-vue'
 import Cropper from 'cropperjs'
 import 'cropperjs/dist/cropper.css'
 
@@ -220,6 +258,9 @@ const router = useRouter()
 const imageId = route.params.id // 获取URL中的id
 const imageInfo = ref(null)
 const loading = ref(false)
+const downloadDialogVisible = ref(false)
+const downloadFilename = ref('')
+const downloading = ref(false)
 
 // 编辑器相关状态
 const showCrop = ref(false)
@@ -450,6 +491,102 @@ const handleSaveEdit = () => {
             rawCroppedCanvas.remove()
         }
     }, 'image/jpeg', 0.95) // 指定输出格式为JPEG，质量0.95
+}
+
+// 重命名逻辑
+const handleRename = () => {
+    if (!imageInfo.value) return
+    ElMessageBox.prompt('请输入新的文件名', '重命名', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        inputValue: imageInfo.value.originalFilename,
+        // 禁止空字符
+        inputPattern: /\S/,
+        inputErrorMessage: '文件名不能为空'
+    }).then(async ({ value }) => {
+        try {
+            // 调用后端重命名接口
+            await request.post(`/images/${imageId}/rename`, null, {
+                params: { newName: value }
+            })
+            ElMessage.success('重命名成功')
+            // 更新前端显示
+            imageInfo.value.originalFilename = value
+        } catch (error) {
+            console.error(error)
+        }
+    }).catch(() => {
+        // 取消输入不做处理
+    })
+}
+
+// 点击下载打开弹窗
+const handleDownload = () => {
+    downloadDialogVisible.value = true
+    // 默认填入当前文件名
+    downloadFilename.value = imageInfo.value.originalFilename.replace(/\.\w+$/, '')
+}
+
+// 确定下载
+const confirmDownload = async () => {
+    if (!downloadFilename.value.trim()) {
+        return ElMessage.warning('请输入文件名')
+    }
+    downloading.value = true
+    try {
+        // 从后端请求文件流
+        const res = await request.get(`/images/${imageId}/download`, {
+            responseType: 'blob' 
+        })
+        const blob = new Blob([res])
+        const finalName = `${downloadFilename.value}.jpg`
+        // 关闭弹窗
+        downloadDialogVisible.value = false
+        // 调用“另存为”窗口
+        if (window.showSaveFilePicker) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: finalName,
+                    types: [{
+                        description: 'JPEG Image',
+                        accept: { 'image/jpeg': ['.jpg'] },
+                    }],
+                })
+                // 用户选好位置后，写入文件
+                const writable = await handle.createWritable()
+                await writable.write(blob)
+                await writable.close()
+                ElMessage.success('保存成功')
+            } catch (err) {
+                // 如果用户在弹窗里点击了“取消”，会抛出AbortError
+                if (err.name !== 'AbortError') {
+                    console.error(err)
+                    // 如果API调用失败，降级到传统方法
+                    fallbackDownload(blob, finalName)
+                }
+            }
+        } else {
+            // 简单下载，取决于用户浏览器选择
+            fallbackDownload(blob, finalName)
+        }
+    } catch (error) {
+        console.error('下载出错', error)
+        ElMessage.error('下载失败')
+    } finally {
+        downloading.value = false
+    }
+}
+
+// 简化下载方式
+const fallbackDownload = (blob, filename) => {
+    const link = document.createElement('a')
+    link.href = window.URL.createObjectURL(blob)
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(link.href)
+    ElMessage.success('已触发下载')
 }
 
 // 交互状态控制
@@ -724,6 +861,16 @@ onMounted(() => {
     display: flex;
     height: 500px; /* 固定高度 */
     gap: 20px;
+}
+
+.tips-text {
+    font-size: 12px;
+    color: #909399;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 /* 穿透Cropper的DOM结构找到所有内部图片 */
