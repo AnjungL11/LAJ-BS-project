@@ -93,11 +93,11 @@
     >
       <div class="editor-container" v-loading="editLoading" element-loading-text="正在处理并上传...">
         
-        <div class="crop-area">
+        <div class="crop-area" :style="{ '--filter-val': filterString }">
+
           <img 
             ref="cropImgRef" 
             :src="getImageUrl(imageInfo?.storagePath, false)" 
-            :style="previewFilterStyle"
             alt="Source Image" 
             style="max-width: 100%; display: block;"
           />
@@ -174,10 +174,10 @@ const editParams = reactive({
     saturation: 100
 })
 
-// 计算实时的CSS滤镜样式用于预览
-const previewFilterStyle = computed(() => ({
-    filter: `brightness(${editParams.brightness}%) contrast(${editParams.contrast}%) saturate(${editParams.saturation}%)`
-}))
+// 返回滤镜字符串供CSS变量使用
+const filterString = computed(() => {
+    return `brightness(${editParams.brightness}%) contrast(${editParams.contrast}%) saturate(${editParams.saturation}%)`
+})
 
 // 初始化Cropper
 const openEditDialog = () => {
@@ -250,39 +250,36 @@ const applyFilterToCanvas = (sourceCanvas) => {
     return filterCanvas
 }
 
+// 保存编辑
 const handleSaveEdit = () => {
     if (!cropperInstance.value) return
     editLoading.value = true
 
     // 获取Cropper裁剪后的纯净Canvas
-    // 设置maxWidth、maxHeight防止生成过大的图片导致崩溃
-    const croppedCanvas = cropperInstance.value.getCroppedCanvas({
+    // 设置maxWidth、maxHeight防止生成过大的图片导致浏览器崩溃
+    const rawCroppedCanvas = cropperInstance.value.getCroppedCanvas({
         maxWidth: 4096,
         maxHeight: 4096,
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high',
     })
-
-    if (!croppedCanvas) {
+    if (!rawCroppedCanvas) {
         editLoading.value = false
         return ElMessage.error('无法获取裁剪图像')
     }
-
-    // 应用调色滤镜得到最终的Canvas
-    const finalCanvas = applyFilterToCanvas(croppedCanvas)
-
-    // 将Canvas转换为Blob
+    // 调用辅助函数，把新参数加到新的Canvas上，得到最终带有裁剪和调色效果的Canvas
+    const finalCanvas = applyFilterToCanvas(rawCroppedCanvas)
+    // 使用最终的finalCanvas导出为Blob文件
     finalCanvas.toBlob(async (blob) => {
         if (!blob) {
             editLoading.value = false
             return ElMessage.error('图像处理失败')
         }
-
         // 构造FormData上传
         const formData = new FormData()
-        // 使用原文件名添加前缀以示区分
-        const newFilename = `edited_${imageInfo.value.originalFilename.replace(/\.\w+$/, '.jpg')}`
-        // 第三个参数指定文件名，强制存为jpg
+        // 使用原文件名,后缀为jpg
+        const newFilename = imageInfo.value.originalFilename.replace(/\.\w+$/, '.jpg')
+        // 第三个参数指定文件名
         formData.append('file', blob, newFilename) 
 
         try {
@@ -295,11 +292,14 @@ const handleSaveEdit = () => {
             // 重新加载详情以查看最新图片
             fetchDetail()
         } catch (error) {
-            console.error(error)
+            console.error("保存失败", error)
         } finally {
             editLoading.value = false
+            // 清理临时 canvas 内存
+            finalCanvas.remove()
+            rawCroppedCanvas.remove()
         }
-    }, 'image/jpeg', 0.92) // 指定输出格式为JPEG，质量0.92
+    }, 'image/jpeg', 0.95) // 指定输出格式为JPEG，质量0.95
 }
 
 // 交互状态控制
@@ -576,6 +576,18 @@ onMounted(() => {
     gap: 20px;
 }
 
+/* 穿透Cropper的DOM结构找到所有内部图片 */
+/* .cropper-view-box img：裁剪框内的高亮图 */
+/* .cropper-canvas img：背景里的暗色图 */
+.crop-area :deep(.cropper-view-box img),
+.crop-area :deep(.cropper-canvas img) {
+    /* 使用在Template里绑定的CSS变量 */
+    filter: var(--filter-val) !important;
+    
+    /* 添加过渡效果，让滑块拖动时变化更丝滑 */
+    transition: filter 0.1s linear;
+}
+
 .crop-area {
     flex: 1;
     background: #f0f2f5;
@@ -585,6 +597,7 @@ onMounted(() => {
     border-radius: 4px;
     /* 确保cropper图片容器不会溢出 */
     max-height: 100%;
+    position: relative; /* 确保 CSS 变量作用域正确 */
 }
 
 /* 覆盖CropperJS默认样式，让图片在容器内居中显示 */

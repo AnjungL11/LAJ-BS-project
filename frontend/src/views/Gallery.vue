@@ -55,8 +55,15 @@
           </div>
 
           <div class="image-wrapper">
-            <img :src="getImageUrl(img.thumbnailPath)" class="image" loading="lazy"/>
-            <div class="play-overlay" v-if="!isSelectionMode"><el-icon><VideoPlay /></el-icon></div>
+            <img 
+              :src="getImageUrl(img.thumbnailPath, true, img.fileSize)" 
+              class="image" 
+              loading="lazy"
+            />
+            
+            <div class="play-overlay" v-if="!isSelectionMode">
+               <el-icon><VideoPlay /></el-icon>
+            </div>
           </div>
           <div class="info">
             <div class="filename" :title="img.originalFilename">{{ img.originalFilename }}</div>
@@ -113,12 +120,11 @@
       <el-carousel :autoplay="true" :interval="4000" arrow="always" height="100vh" indicator-position="none" pause-on-hover>
         <el-carousel-item v-for="img in carouselList" :key="img.imageId">
           <div class="carousel-item-wrapper">
-            <img :src="getImageUrl(img.storagePath, false)" class="carousel-image" />
-            <div class="carousel-caption">
-              <h3>{{ img.originalFilename }}</h3>
-              <p>{{ img.tags ? img.tags.join(' · ') : '' }}</p>
+            <img 
+              :src="getImageUrl(img.storagePath, false, img.fileSize)" 
+              class="carousel-image" 
+            />
             </div>
-          </div>
         </el-carousel-item>
       </el-carousel>
     </el-dialog>
@@ -284,10 +290,17 @@ const handlePageChange = (val) => {
   fetchImages() 
 }
 
-const getImageUrl = (path, isThumbnail = true) => {
+const getImageUrl = (path, isThumbnail = true, version = '') => {
   if (!path) return ''
   const filename = path.replace(/\\/g, '/').split('/').pop()
-  return isThumbnail ? `/uploads/thumb/${filename}` : `/uploads/original/${filename}`
+  // 基础URL
+  let url = isThumbnail ? `/uploads/thumb/${filename}` : `/uploads/original/${filename}`
+  // 如果传入了版本号拼接到URL后面,更改缩略图
+  if (version !== undefined && version !== null && version !== '') {
+      const symbol = url.includes('?') ? '&' : '?'
+      url += `${symbol}v=${version}`
+  }
+  return url
 }
 onMounted(fetchImages)
 </script>
