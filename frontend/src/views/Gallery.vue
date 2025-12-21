@@ -15,49 +15,50 @@
           </template>
         </el-input>
         
-        <el-button type="primary" plain :icon="Filter" @click="showFilter = true" style="margin-left: 10px;">
-          高级筛选
+        <el-button plain :icon="Filter" @click="showFilter = true" class="filter-btn">
+          筛选
         </el-button>
       </div>
 
       <div class="actions">
+        <el-tooltip content="全屏播放当前列表的所有图片" placement="bottom">
+          <el-button type="success" :icon="VideoPlay" @click="playAll">
+            幻灯片放映
+          </el-button>
+        </el-tooltip>
+
         <el-button 
           v-if="!isSelectionMode" 
-          type="warning" 
+          type="primary" 
           plain 
-          icon="List" 
-          @click="isSelectionMode = true"
+          :icon="List" 
+          @click="enterSelectionMode"
         >
-          批量选择
+          选择图片
         </el-button>
-        
-        <template v-else>
-          <el-button type="info" plain @click="exitSelectionMode">取消选择</el-button>
-          <el-button 
-            type="success" 
-            icon="VideoPlay" 
-            :disabled="selectedIds.size === 0"
-            @click="openCarousel"
-          >
-            播放选中 ({{ selectedIds.size }})
-          </el-button>
-        </template>
+        <el-button 
+          v-else 
+          plain 
+          @click="exitSelectionMode"
+        >
+          取消选择
+        </el-button>
 
-        <el-button type="primary" :icon="Upload" @click="$router.push('/upload')" style="margin-left: 10px;">
-          上传图片
+        <el-button type="primary" :icon="Upload" @click="$router.push('/upload')">
+          上传
         </el-button>
       </div>
     </div>
 
-    <el-drawer v-model="showFilter" title="高级图片检索" size="300px">
-      <el-form :model="searchForm" label-position="top">
-        <el-form-item label="标签筛选">
-          <el-select v-model="searchForm.tags" multiple filterable allow-create default-first-option placeholder="输入标签" style="width: 100%">
-            <el-option label="风景" value="风景" /><el-option label="人物" value="人物" /><el-option v-for="y in 3" :key="y" :label="`${2022+y}年`" :value="`${2022+y}年`" />
+    <el-drawer v-model="showFilter" title="高级检索" size="300px">
+       <el-form :model="searchForm" label-position="top">
+        <el-form-item label="包含标签">
+          <el-select v-model="searchForm.tags" multiple filterable allow-create default-first-option placeholder="输入标签回车" style="width: 100%">
+            <el-option label="风景" value="风景" /><el-option label="人物" value="人物" /><el-option v-for="y in 5" :key="y" :label="`${2020+y}年`" :value="`${2020+y}年`" />
           </el-select>
         </el-form-item>
-        <el-form-item label="拍摄设备"><el-input v-model="searchForm.cameraModel" /></el-form-item>
-        <el-form-item label="拍摄时间范围">
+        <el-form-item label="设备型号"><el-input v-model="searchForm.cameraModel" /></el-form-item>
+        <el-form-item label="时间范围">
           <el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" value-format="YYYY-MM-DDTHH:mm:ss" style="width: 100%" />
         </el-form-item>
       </el-form>
@@ -66,7 +67,7 @@
       </template>
     </el-drawer>
 
-    <el-row :gutter="20" v-loading="loading">
+    <el-row :gutter="20" v-loading="loading" class="image-grid">
       <el-col 
         :xs="12" :sm="8" :md="6" :lg="4" 
         v-for="img in imageList" 
@@ -81,47 +82,71 @@
           @click="handleCardClick(img)"
         >
           <div v-if="isSelectionMode" class="checkbox-overlay">
-            <el-checkbox 
+             <el-checkbox 
               :model-value="selectedIds.has(img.imageId)" 
               @change="(val) => toggleSelection(img.imageId, val)"
-              @click.stop
+              @click.stop 
             />
           </div>
 
           <div class="image-wrapper">
             <img :src="getImageUrl(img.thumbnailPath)" class="image" loading="lazy"/>
+            <div class="play-overlay" v-if="!isSelectionMode">
+               <el-icon><VideoPlay /></el-icon>
+            </div>
           </div>
           <div class="info">
             <div class="filename" :title="img.originalFilename">{{ img.originalFilename }}</div>
-            <div class="meta-row">
-              <span class="size">{{ formatSize(img.fileSize) }}</span>
-              <el-tag v-if="img.tags && img.tags.length > 0" size="small" effect="plain" class="mini-tag">
-                {{ img.tags[0] }}
-              </el-tag>
-            </div>
           </div>
         </el-card>
       </el-col>
     </el-row>
     
-    <el-empty v-if="!loading && imageList.length === 0" description="暂无符合条件的图片" />
+    <el-empty v-if="!loading && imageList.length === 0" description="暂无图片" />
     <div class="pagination" v-if="total > 0">
         <el-pagination layout="prev, pager, next" :total="total" :page-size="searchForm.size" :current-page="searchForm.page" @current-change="handlePageChange" />
     </div>
+
+    <transition name="el-zoom-in-bottom">
+      <div v-if="isSelectionMode" class="selection-bar">
+        <div class="selection-info">
+          已选择 <b>{{ selectedIds.size }}</b> 张图片
+        </div>
+        <div class="selection-actions">
+          <el-button text bg @click="exitSelectionMode">取消</el-button>
+          <el-button 
+            type="success" 
+            :icon="VideoPlay" 
+            :disabled="selectedIds.size === 0"
+            @click="playSelected"
+          >
+            播放选中图片
+          </el-button>
+          </div>
+      </div>
+    </transition>
 
     <el-dialog 
       v-model="carouselVisible" 
       fullscreen 
       append-to-body 
-      class="carousel-dialog"
+      class="carousel-dialog" 
+      :show-close="true"
     >
-      <el-carousel :autoplay="false" arrow="always" height="100%" indicator-position="none">
+      <el-carousel 
+        :autoplay="true" 
+        :interval="4000" 
+        arrow="always" 
+        height="100vh" 
+        indicator-position="none"
+        pause-on-hover
+      >
         <el-carousel-item v-for="img in carouselList" :key="img.imageId">
           <div class="carousel-item-wrapper">
             <img :src="getImageUrl(img.storagePath, false)" class="carousel-image" />
             <div class="carousel-caption">
               <h3>{{ img.originalFilename }}</h3>
-              <p>{{ img.tags ? img.tags.join(', ') : '' }}</p>
+              <p>{{ img.tags ? img.tags.join(' · ') : '暂无标签' }}</p>
             </div>
           </div>
         </el-carousel-item>
@@ -135,7 +160,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import request from '../utils/request'
 import { useRouter } from 'vue-router'
-import { Search, Upload, Filter, VideoPlay, List } from '@element-plus/icons-vue' // 引入新图标
+import { Search, Upload, Filter, VideoPlay, List } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const imageList = ref([])
@@ -144,14 +170,10 @@ const showFilter = ref(false)
 const total = ref(0)
 const dateRange = ref([])
 
-// 状态
-// 是否处于多选模式
+// 状态管理
 const isSelectionMode = ref(false)
-// 存储选中的图片ID
 const selectedIds = ref(new Set())
-// 轮播弹窗开关
 const carouselVisible = ref(false)
-// 轮播列表数据
 const carouselList = ref([])
 
 const searchForm = reactive({
@@ -162,6 +184,7 @@ const searchForm = reactive({
   size: 12
 })
 
+// 数据获取
 const fetchImages = async () => {
   loading.value = true
   try {
@@ -182,149 +205,169 @@ const fetchImages = async () => {
   }
 }
 
-// 交互逻辑
-const handleSearch = () => {
-  searchForm.page = 1
-  showFilter.value = false
-  fetchImages()
-}
+// 播放逻辑
 
-const resetFilter = () => {
-  searchForm.tags = []
-  searchForm.cameraModel = ''
-  dateRange.value = []
-}
-
-const handlePageChange = (val) => { 
-  searchForm.page = val
-  fetchImages() 
-}
-
-// 卡片点击与多选逻辑
-
-const handleCardClick = (img) => {
-  if (isSelectionMode.value) {
-    // 选图模式下，点击卡片 = 切换选中状态
-    const id = img.imageId
-    if (selectedIds.value.has(id)) {
-      selectedIds.value.delete(id)
-    } else {
-      selectedIds.value.add(id)
-    }
-  } else {
-    // 普通模式下点击卡片进入详情
-    router.push(`/detail/${img.imageId}`)
+// 播放所有
+const playAll = () => {
+  if (imageList.value.length === 0) {
+    ElMessage.warning('当前列表没有图片可播放')
+    return
   }
+  carouselList.value = [...imageList.value] // 复制当前列表
+  carouselVisible.value = true
 }
 
-// 勾选框变更事件
-const toggleSelection = (id, checked) => {
-  if (checked) selectedIds.value.add(id)
-  else selectedIds.value.delete(id)
+// 播放选中
+const playSelected = () => {
+  const selected = imageList.value.filter(img => selectedIds.value.has(img.imageId))
+  if (selected.length === 0) return
+  
+  carouselList.value = selected
+  carouselVisible.value = true
 }
 
-// 退出选择模式
+// 选择模式逻辑
+
+const enterSelectionMode = () => {
+  isSelectionMode.value = true
+}
+
 const exitSelectionMode = () => {
   isSelectionMode.value = false
   selectedIds.value.clear()
 }
 
-// 打开轮播
-const openCarousel = () => {
-  // 过滤出选中的图片对象
-  const selected = imageList.value.filter(img => selectedIds.value.has(img.imageId))
-  
-  if (selected.length > 0) {
-    carouselList.value = selected
-    carouselVisible.value = true
+const handleCardClick = (img) => {
+  if (isSelectionMode.value) {
+    const id = img.imageId
+    if (selectedIds.value.has(id)) selectedIds.value.delete(id)
+    else selectedIds.value.add(id)
+  } else {
+    // 正常模式点击看详情
+    router.push(`/detail/${img.imageId}`)
   }
 }
 
-// 辅助函数
+const toggleSelection = (id, checked) => {
+  if (checked) selectedIds.value.add(id)
+  else selectedIds.value.delete(id)
+}
+
+// 通用逻辑
+const handleSearch = () => {
+  searchForm.page = 1
+  showFilter.value = false
+  fetchImages()
+}
+const resetFilter = () => {
+  searchForm.tags = []
+  searchForm.cameraModel = ''
+  dateRange.value = []
+}
+const handlePageChange = (val) => { 
+  searchForm.page = val
+  fetchImages() 
+}
+
 const getImageUrl = (path, isThumbnail = true) => {
   if (!path) return ''
   const filename = path.replace(/\\/g, '/').split('/').pop()
-  if (isThumbnail) {
-    return `/uploads/thumb/${filename}`
-  } else {
-    return `/uploads/original/${filename}`
-  }
+  return isThumbnail ? `/uploads/thumb/${filename}` : `/uploads/original/${filename}`
 }
-
-const formatSize = (bytes) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024, sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
 onMounted(fetchImages)
 </script>
 
 <style scoped>
-/* 保持原有的样式 ... */
-.gallery-page { padding-bottom: 20px; }
+/* 基础布局 */
+.gallery-page { padding-bottom: 80px; /* 为底部悬浮栏留出空间 */ }
 .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-.search-group { display: flex; align-items: center; flex: 1; max-width: 600px; }
+.search-group { display: flex; align-items: center; flex: 1; max-width: 600px; gap: 10px; }
 .search-input { flex: 1; }
-.img-col { margin-bottom: 20px; }
 
-/* 卡片样式增强 */
+/* 卡片样式 */
+.img-col { margin-bottom: 20px; }
 .img-card { 
   cursor: pointer; 
-  position: relative; /* 为了定位勾选框 */
-  transition: transform 0.2s, box-shadow 0.2s, border 0.2s; 
+  position: relative; 
+  transition: all 0.2s; 
   border-radius: 8px; 
   overflow: hidden; 
   border: 1px solid #ebeef5;
 }
 .img-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+.img-card.is-selected { border: 2px solid #67c23a; }
 
-/* 选中状态的卡片高亮 */
-.img-card.is-selected {
-  border: 2px solid #67c23a; /* 绿色边框 */
-  box-shadow: 0 0 10px rgba(103, 194, 58, 0.3);
-}
-
-/* 勾选框浮层 */
-.checkbox-overlay {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 4px;
-  padding: 2px 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.image-wrapper { height: 160px; overflow: hidden; background: #f5f7fa; display: flex; align-items: center; justify-content: center; }
+/* 图片容器 */
+.image-wrapper { height: 160px; overflow: hidden; background: #f5f7fa; display: flex; align-items: center; justify-content: center; position: relative; }
 .image { width: 100%; height: 100%; object-fit: cover; }
+
+/* 悬停显示播放图标 */
+.play-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.3);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.3s;
+}
+.play-overlay .el-icon { font-size: 40px; color: #fff; }
+.img-card:hover .play-overlay { opacity: 1; }
+
 .info { padding: 10px; }
-.filename { font-size: 14px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
-.meta-row { display: flex; justify-content: space-between; align-items: center; }
-.size { font-size: 12px; color: #999; }
-.mini-tag { transform: scale(0.9); margin-right: -4px; }
-.pagination { display: flex; justify-content: center; margin-top: 20px; }
+.filename { font-size: 14px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.checkbox-overlay {
+  position: absolute; top: 10px; right: 10px; z-index: 10;
+  background: #fff; border-radius: 4px; padding: 2px 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* 底部悬浮操作栏 */
+.selection-bar {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: #fff;
+  padding: 10px 30px;
+  border-radius: 50px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  display: flex; align-items: center; gap: 20px;
+  z-index: 100;
+  border: 1px solid #ebeef5;
+}
+.selection-info { font-size: 14px; color: #606266; }
 
 /* 轮播样式 */
-/* 这里使用了 :deep 来穿透 Element Plus 的内部样式 */
-:deep(.carousel-dialog .el-dialog__body) {
-  padding: 0;
-  height: 100%;
-  background-color: #000; /* 黑色背景 */
+/* 弹窗背景变黑，且铺满全屏 */
+:deep(.carousel-dialog) {
+  background: #000 !important; /* 覆盖默认白色 */
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
 }
+
+/* 让关闭按钮悬浮 */
 :deep(.carousel-dialog .el-dialog__header) {
   position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 2000;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  padding: 0;
   background: transparent;
   border: none;
+  width: auto;
 }
+
+/* 关闭按钮变大变白 */
 :deep(.carousel-dialog .el-dialog__headerbtn .el-dialog__close) {
-  color: #fff; /* 关闭按钮白色 */
-  font-size: 24px;
+  color: #fff !important;
+  font-size: 30px;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(0,0,0,0.5);
+}
+
+/* Body区域填满剩余空间，且去除内边距 */
+:deep(.carousel-dialog .el-dialog__body) {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: 100vh; /* 关键：强制高度 */
+  overflow: hidden;
+  background: #000;
 }
 
 .carousel-item-wrapper {
@@ -335,32 +378,31 @@ onMounted(fetchImages)
   justify-content: center;
   align-items: center;
   position: relative;
+  background-color: #000;
 }
 
 .carousel-image {
-  max-width: 90%;
-  max-height: 85vh;
-  object-fit: contain; /* 保持图片比例 */
-  box-shadow: 0 0 30px rgba(255,255,255,0.1);
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; /* 保证图片完整显示不裁剪 */
+  display: block;
 }
 
 .carousel-caption {
   position: absolute;
-  bottom: 20px;
+  bottom: 40px;
   color: #fff;
   text-align: center;
   text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-  background: rgba(0,0,0,0.5);
-  padding: 10px 20px;
-  border-radius: 20px;
+  background: rgba(0,0,0,0.6);
+  padding: 10px 30px;
+  border-radius: 30px;
+  pointer-events: none; /* 防止遮挡图片点击 */
 }
 .carousel-caption h3 { margin: 0 0 5px 0; font-weight: normal; font-size: 18px; }
-.carousel-caption p { margin: 0; font-size: 14px; color: #ccc; }
-
-/* 响应式 */
+.carousel-caption p { margin: 0; font-size: 14px; color: #ddd; }
+/* 移动端适配 */
 @media (max-width: 600px) {
-  .search-group { width: 100%; max-width: none; }
-  .toolbar { flex-direction: column-reverse; }
-  .actions { width: 100%; display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 5px; }
+  .selection-bar { width: 90%; justify-content: space-between; padding: 10px 20px; }
 }
 </style>
