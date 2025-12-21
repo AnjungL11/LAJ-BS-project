@@ -41,8 +41,7 @@
             <el-option label="风景" value="风景" />
             <el-option label="人物" value="人物" />
             <el-option label="动物" value="动物" />
-            <el-option label="高清大图" value="高清大图" />
-            <el-option v-for="y in 5" :key="y" :label="`${2020+y}年`" :value="`${2020+y}年`" />
+            <el-option v-for="y in 2" :key="y" :label="`${2023+y}年`" :value="`${2023+y}年`" />
           </el-select>
         </el-form-item>
 

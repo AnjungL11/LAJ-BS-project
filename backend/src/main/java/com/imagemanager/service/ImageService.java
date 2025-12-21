@@ -165,8 +165,7 @@ public class ImageService {
     public Page<Image> searchAdvanced(ImageSearchRequest req, Long userId) {
         Page<Image> pageParam = new Page<>(req.getPage(), req.getSize());
         QueryWrapper<Image> query = new QueryWrapper<>();
-        
-        // 只能查自己的图
+        // 只能查自己上传的图
         query.eq("user_id", userId);
 
         // 按照文件名模糊查询
@@ -178,10 +177,24 @@ public class ImageService {
         // 查找拥有指定标签的image_id对应的图片
         if (req.getTags() != null && !req.getTags().isEmpty()) {
             // 拼接SQL语句：SELECT image_id FROM image_tags WHERE tag_id IN (SELECT tag_id FROM tags WHERE tag_name IN ('tag1', 'tag2'))
-            String tagsStr = "'" + String.join("','", req.getTags()) + "'";
+            // String tagsStr = "'" + String.join("','", req.getTags()) + "'";
+            // 单引号转义防止SQL注入
+            List<String> safeTags = req.getTags().stream()
+                    .map(t -> t.replace("'", "''")) 
+                    .toList();
+            String tagsStr = "'" + String.join("','", safeTags) + "'";
+            int tagCount = safeTags.size();
+            // String subQuery = String.format(
+            //     "SELECT image_id FROM image_tags WHERE tag_id IN (SELECT tag_id FROM tags WHERE tag_name IN (%s))", 
+            //     tagsStr
+            // );
             String subQuery = String.format(
-                "SELECT image_id FROM image_tags WHERE tag_id IN (SELECT tag_id FROM tags WHERE tag_name IN (%s))", 
-                tagsStr
+                "SELECT it.image_id FROM image_tags it " +
+                "JOIN tags t ON it.tag_id = t.tag_id " +
+                "WHERE t.tag_name IN (%s) " +
+                "GROUP BY it.image_id " +
+                "HAVING COUNT(DISTINCT t.tag_name) = %d", 
+                tagsStr, tagCount
             );
             query.inSql("image_id", subQuery);
         }
