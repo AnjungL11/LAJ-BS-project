@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.imagemanager.dto.ImageSearchRequest;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -157,5 +159,75 @@ public class ImageService {
             }
         });
         return result;
+    }
+
+    // 完善增强查询功能
+    public Page<Image> searchAdvanced(ImageSearchRequest req, Long userId) {
+        Page<Image> pageParam = new Page<>(req.getPage(), req.getSize());
+        QueryWrapper<Image> query = new QueryWrapper<>();
+        
+        // 只能查自己的图
+        query.eq("user_id", userId);
+
+        // 按照文件名模糊查询
+        if (StringUtils.hasText(req.getFilename())) {
+            query.like("original_filename", req.getFilename());
+        }
+
+        // 按照标签查询
+        // 查找拥有指定标签的image_id对应的图片
+        if (req.getTags() != null && !req.getTags().isEmpty()) {
+            // 拼接SQL语句：SELECT image_id FROM image_tags WHERE tag_id IN (SELECT tag_id FROM tags WHERE tag_name IN ('tag1', 'tag2'))
+            String tagsStr = "'" + String.join("','", req.getTags()) + "'";
+            String subQuery = String.format(
+                "SELECT image_id FROM image_tags WHERE tag_id IN (SELECT tag_id FROM tags WHERE tag_name IN (%s))", 
+                tagsStr
+            );
+            query.inSql("image_id", subQuery);
+        }
+
+        // 按照图片元数据查询
+        boolean hasMetadataCondition = StringUtils.hasText(req.getCameraModel()) || req.getStartTime() != null || req.getEndTime() != null;
+                                    
+        if (hasMetadataCondition) {
+            StringBuilder metaSubQuery = new StringBuilder("SELECT image_id FROM image_metadata WHERE 1=1 ");
+            
+            // 设备型号筛选
+            if (StringUtils.hasText(req.getCameraModel())) {
+                metaSubQuery.append(" AND camera_model LIKE '%").append(req.getCameraModel()).append("%'");
+            }
+            
+            // 时间范围筛选
+            if (req.getStartTime() != null) {
+                metaSubQuery.append(" AND taken_time >= '").append(req.getStartTime()).append("'");
+            }
+            if (req.getEndTime() != null) {
+                metaSubQuery.append(" AND taken_time <= '").append(req.getEndTime()).append("'");
+            }
+            
+            query.inSql("image_id", metaSubQuery.toString());
+        }
+        query.orderByDesc("uploaded_at");
+
+        // 执行查询
+        Page<Image> result = imageMapper.selectPage(pageParam, query);
+        // 手动填充tags和metadata信息
+        populateAdditionalInfo(result); 
+        return result;
+    }
+
+    // 填充逻辑
+    private void populateAdditionalInfo(Page<Image> result) {
+        result.getRecords().forEach(img -> {
+            // 填充Metadata
+            ImageMetadata meta = metadataMapper.selectOne(new QueryWrapper<ImageMetadata>().eq("image_id", img.getImageId()));
+            img.setMetadata(meta);
+            // 填充Tags
+            List<Object> tagIds = imageTagMapper.selectObjs(new QueryWrapper<ImageTag>().select("tag_id").eq("image_id", img.getImageId()));
+            if (tagIds != null && !tagIds.isEmpty()) {
+                List<Object> tagNames = tagMapper.selectObjs(new QueryWrapper<Tag>().select("tag_name").in("tag_id", tagIds));
+                img.setTags(tagNames.stream().map(Object::toString).toList());
+            }
+        });
     }
 }

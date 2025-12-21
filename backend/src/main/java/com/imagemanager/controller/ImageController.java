@@ -7,6 +7,7 @@ import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.imagemanager.dto.ImageSearchRequest;
 import java.io.IOException;
 import java.util.Map;
 
@@ -24,6 +25,13 @@ public class ImageController {
                         @RequestAttribute("userId") Long userId) throws IOException {
         // 这里的userId应该通过拦截器从Token中解析并放入 RequestAttribute
         return imageService.upload(file, userId);
+    }
+
+    // 搜索图片
+    @PostMapping("/search") 
+    public Page<Image> search(@RequestBody ImageSearchRequest request, 
+                              @RequestAttribute("userId") Long userId) {
+        return imageService.searchAdvanced(request, userId);
     }
 
     // 搜索图片
