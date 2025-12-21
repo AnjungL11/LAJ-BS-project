@@ -18,7 +18,18 @@ service.interceptors.request.use(config => {
 // 响应拦截器，处理错误
 service.interceptors.response.use(
   response => response.data,
-  error => {
+  async error => {
+    // 针对Blob类型的错误处理
+    if (error.response && error.response.data instanceof Blob && error.response.data.type === 'application/json') {
+      try {
+        // 将Blob转回文本，读取里面的错误信息
+        const text = await error.response.data.text()
+        const json = JSON.parse(text)
+        // 替换回JSON对象，方便后面读取message
+        error.response.data = json
+      } catch (e) {}
+    }
+
     if (error.response && error.response.status === 401) {
       ElMessage.error('登录已过期，请重新登录')
       localStorage.removeItem('token')

@@ -392,7 +392,8 @@ public class ImageService {
             // 处理中文文件名乱码问题
             String encodedFilename = URLEncoder.encode(image.getOriginalFilename(), "UTF-8").replaceAll("\\+", "%20");
             response.reset();
-            response.setContentType("application/octet-stream");
+            // response.setContentType("application/octet-stream");
+            response.setContentType("image/jpeg");
             response.setCharacterEncoding("utf-8");
             response.setContentLength((int) file.length());
             response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFilename);

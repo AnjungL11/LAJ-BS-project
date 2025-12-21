@@ -7,7 +7,7 @@
       </div>
       <div class="edit-toolbar">
          <el-button-group>
-           <el-button type="primary" plain :icon="Crop" @click="openEditDialog">编辑/裁剪</el-button>
+           <el-button type="primary" plain :icon="Crop" @click="openEditDialog">编辑</el-button>
            <el-button type="success" plain :icon="Download" @click="handleDownload">下载</el-button>
            <el-button type="danger" plain :icon="Delete" @click="deleteImage">删除</el-button>
          </el-button-group>
@@ -119,7 +119,7 @@
             <div class="panel-title">编辑控制</div>
             
             <div class="control-group">
-                <span class="label">旋转 (Rotate)</span>
+                <span class="label">旋转</span>
                 <div class="rotate-buttons">
                     <el-button-group>
                         <el-button :icon="RefreshLeft" @click="rotateLeft">向左 90°</el-button>
@@ -131,20 +131,20 @@
             <el-divider /> <div class="panel-title" style="margin-top: 10px;">色彩调整</div>
             
             <div class="slider-group">
-                <span class="label">亮度 (Brightness)</span>
+                <span class="label">亮度</span>
                 <el-slider v-model="editParams.brightness" :min="50" :max="150" :format-tooltip="val => val + '%'" />
             </div>
             <div class="slider-group">
-                <span class="label">对比度 (Contrast)</span>
+                <span class="label">对比度</span>
                 <el-slider v-model="editParams.contrast" :min="50" :max="150" :format-tooltip="val => val + '%'" />
             </div>
             <div class="slider-group">
-                <span class="label">饱和度 (Saturation)</span>
+                <span class="label">饱和度</span>
                 <el-slider v-model="editParams.saturation" :min="0" :max="200" :format-tooltip="val => val + '%'" />
             </div>
             <div class="slider-group">
                 <span class="label">
-                    色温 (Temperature) 
+                    色温
                     <el-tooltip content="左冷右暖 (-50 ~ 50)" placement="top">
                         <el-icon><InfoFilled /></el-icon>
                     </el-tooltip>
@@ -546,7 +546,8 @@ const confirmDownload = async () => {
         const res = await request.get(`/images/${imageId}/download`, {
             responseType: 'blob' 
         })
-        const blob = new Blob([res])
+        // const blob = new Blob([res])
+        const blob = new Blob([res], { type: 'image/jpeg' })
         const finalName = `${downloadFilename.value}.jpg`
         // 关闭弹窗
         downloadDialogVisible.value = false
@@ -1018,5 +1019,95 @@ onMounted(() => {
   .editor-container { flex-direction: column; height: auto; }
   .crop-area { height: 300px; }
   .adjust-panel { width: 100%; border-left: none; border-top: 1px solid #eee; }
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  /* 详情页整体布局改为垂直排列，高度自动 */
+  .detail-page {
+    flex-direction: column; /* 上下排列 */
+    height: auto !important; /* 取消固定高度，允许滚动 */
+    gap: 10px;
+    padding-bottom: 20px;
+  }
+
+  /* 左侧图片预览区高度固定，宽度100% */
+  .left-panel {
+    width: 100%;
+    height: 50vh; /* 占据屏幕一半高度 */
+    flex: none;   /* 禁止自动伸缩 */
+  }
+  
+  .main-img {
+    max-height: 90%; /* 防止图片撑破 */
+  }
+
+  /* 工具栏移动到图片下方，按钮变小 */
+  .edit-toolbar {
+    width: 90%;
+    bottom: 10px;
+    padding: 5px 10px;
+  }
+  
+  /* 强制按钮图标和文字变小 */
+  .edit-toolbar .el-button {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  /* 右侧信息区宽度100%，取消滚动限制 */
+  .right-panel {
+    width: 100%;
+    height: auto;
+    box-shadow: none;
+    padding: 15px;
+  }
+
+  /* 编辑器弹窗适配 */
+  /* 编辑器容器改为垂直排列 */
+  .editor-container {
+    flex-direction: column;
+    height: 70vh; /* 限制总高度 */
+  }
+
+  /* 裁剪区域 */
+  .crop-area {
+    width: 100%;
+    flex: 2; /* 裁剪区占2/3空间 */
+    min-height: 200px;
+  }
+
+  /* 调节面板 */
+  .adjust-panel {
+    width: 100%;
+    flex: 1; /* 调节区占1/3空间 */
+    border-left: none;
+    border-top: 1px solid #eee;
+    padding: 10px;
+    overflow-y: auto; /* 允许内部滚动 */
+  }
+  
+  /* 调整滑块的间距，使其更紧凑 */
+  .slider-group {
+    margin-bottom: 15px;
+  }
+  
+  /* 旋转按钮组 */
+  .rotate-buttons .el-button {
+    padding: 8px;
+  }
+}
+
+/* 全局弹窗适配 */
+/* 强制所有Dialog在手机端宽度为95% */
+:deep(.el-dialog) {
+  width: 95% !important;
+  max-width: 95% !important;
+  margin-top: 5vh !important; /* 稍微靠上 */
+}
+
+/* 调整Dialog内容区域边距 */
+:deep(.el-dialog__body) {
+  padding: 15px !important;
 }
 </style>

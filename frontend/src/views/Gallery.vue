@@ -446,10 +446,15 @@ onMounted(fetchImages)
 .carousel-caption p { margin: 0; font-size: 14px; color: #ddd; }
 
 /* 移动端适配 */
-@media (max-width: 600px) {
-  .selection-bar { width: 95%; flex-direction: column; padding: 15px; border-radius: 20px; gap: 10px; }
-  .selection-left { width: 100%; justify-content: space-between; }
-  .selection-actions { width: 100%; justify-content: space-between; }
-  .selection-actions .el-button { flex: 1; }
+@media (max-width: 768px) {
+  /* 手机端缩小外边距 */
+  .gallery-container {
+    padding: 10px;
+  }
+  
+  /* 调整标题大小 */
+  h2 {
+    font-size: 1.2rem;
+  }
 }
 </style>
