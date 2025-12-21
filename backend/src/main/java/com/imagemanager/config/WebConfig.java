@@ -18,12 +18,21 @@ public class WebConfig implements WebMvcConfigurer {
     @Value("${app.thumbnail-path}")
     private String thumbnailPath; // D:/data/images/thumbs/
 
-    @PostConstruct
-    public void printConfig() {
-        System.out.println("========================================");
-        System.out.println("【调试日志】原图存储路径: " + storagePath);
-        System.out.println("【调试日志】缩略图存储路径: " + thumbnailPath);
-        System.out.println("========================================");
+    // 跨域配置
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        // 允许所有路径
+        registry.addMapping("/**")
+                // 允许所有来源
+                .allowedOriginPatterns("*")
+                // 允许携带Cookie/Token
+                .allowCredentials(true)
+                // 允许的方法
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                // 允许所有请求头
+                .allowedHeaders("*")
+                // 预检请求缓存时间
+                .maxAge(3600);
     }
 
     @Override
@@ -31,7 +40,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(new HandlerInterceptor() {
             @Override
             public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-                if("OPTIONS".equals(request.getMethod())) return true; // 放行跨域预检
+                // 放行跨域预检
+                if("OPTIONS".equals(request.getMethod())) return true;
                 String authHeader = request.getHeader("Authorization");
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     try {
@@ -49,11 +59,11 @@ public class WebConfig implements WebMvcConfigurer {
     // 配置静态资源映射，使前端能访问本地上传的图片
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 1. 映射缩略图：访问 http://localhost:8080/uploads/thumb/xxx.jpg -> 本地 D:/data/images/thumbs/xxx.jpg
+        // 映射缩略图
         registry.addResourceHandler("/uploads/thumb/**")
                 .addResourceLocations("file:" + thumbnailPath);
 
-        // 2. 映射原图：访问 http://localhost:8080/uploads/original/xxx.jpg -> 本地 D:/data/images/original/xxx.jpg
+        // 映射原图
         registry.addResourceHandler("/uploads/original/**")
                 .addResourceLocations("file:" + storagePath);
     }

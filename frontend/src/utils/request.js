@@ -2,11 +2,11 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const service = axios.create({
-  baseURL: '/api', // 匹配 vite 代理
+  baseURL: '/api', // 匹配vite代理
   timeout: 5000
 })
 
-// 请求拦截器：添加 Token
+// 请求拦截器，添加Token
 service.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
   if (token) {
@@ -15,7 +15,7 @@ service.interceptors.request.use(config => {
   return config
 }, error => Promise.reject(error))
 
-// 响应拦截器：处理错误
+// 响应拦截器，处理错误
 service.interceptors.response.use(
   response => response.data,
   error => {
