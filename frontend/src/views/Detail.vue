@@ -130,6 +130,20 @@
                 <span class="label">饱和度 (Saturation)</span>
                 <el-slider v-model="editParams.saturation" :min="0" :max="200" :format-tooltip="val => val + '%'" />
             </div>
+            <div class="slider-group">
+                <span class="label">
+                    色温 (Temperature) 
+                    <el-tooltip content="左冷右暖 (-50 ~ 50)" placement="top">
+                        <el-icon><InfoFilled /></el-icon>
+                    </el-tooltip>
+                </span>
+                <el-slider 
+                    v-model="editParams.temperature" 
+                    :min="-50" 
+                    :max="50" 
+                    :marks="{0: '0', '-50': '冷', '50': '暖'}"
+                />
+            </div>
 
             <el-button type="info" plain size="small" @click="resetParams" style="width: 100%; margin-top: 20px;">
                 重置参数
@@ -141,7 +155,7 @@
                     <li>在左侧拖动选框进行裁剪</li>
                     <li>支持鼠标滚轮缩放</li>
                     <li>调整右侧滑块改变色调</li>
-                    <li>点击“保存应用”覆盖原图</li>
+                    <li>点击“下一步”选择保存图片的方式</li>
                 </ul>
             </div>
         </div>
@@ -150,7 +164,41 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="showCrop = false" :disabled="editLoading">取消</el-button>
-          <el-button type="primary" @click="handleSaveEdit" :loading="editLoading">保存应用</el-button>
+          <el-button type="primary" @click="openSaveOptions" :loading="editLoading">下一步</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="saveOptionVisible"
+      title="保存选项"
+      width="400px"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-form label-position="top">
+        <el-form-item label="选择保存方式">
+          <el-radio-group v-model="saveType">
+            <el-radio label="overwrite">覆盖原图</el-radio>
+            <el-radio label="saveAs">另存为新图片</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item v-if="saveType === 'saveAs'" label="新文件名">
+          <el-input 
+            v-model="newFilename" 
+            placeholder="请输入文件名" 
+            clearable
+          >
+            <template #append>.jpg</template>
+          </el-input>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="saveOptionVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmSaveExecution" :loading="editLoading">确定保存</el-button>
         </span>
       </template>
     </el-dialog>
@@ -178,17 +226,72 @@ const showCrop = ref(false)
 const editLoading = ref(false)
 const cropImgRef = ref(null)
 const cropperInstance = ref(null)
+const saveOptionVisible = ref(false)
+const saveType = ref('overwrite')
+const newFilename = ref('')
+
+// 打开保存选项弹窗
+const openSaveOptions = () => {
+    saveOptionVisible.value = true
+    saveType.value = 'overwrite' // 重置默认值
+    // 默认新文件名为原文件名_edited
+    const originalName = imageInfo.value.originalFilename.replace(/\.\w+$/, '')
+    newFilename.value = `${originalName}_edited`
+}
+
+// 确定保存
+const confirmSaveExecution = () => {
+    // 简单校验
+    if (saveType.value === 'saveAs' && !newFilename.value.trim()) {
+        return ElMessage.warning('请输入新的文件名')
+    }
+    // 关闭选项弹窗，开始Loading
+    saveOptionVisible.value = false
+    // 调用核心处理函数
+    handleSaveEdit()
+}
 
 // 调色参数
 const editParams = reactive({
     brightness: 100,
     contrast: 100,
-    saturation: 100
+    saturation: 100,
+    temperature: 0 // 默认为0，负数偏冷，正数偏暖
 })
 
+// 统一的滤镜字符串生成函数,确保预览和保存使用完全相同的算法来源
+const generateSharedFilterString = () => {
+    // 基础参数
+    const b = editParams.brightness / 100
+    const c = editParams.contrast / 100
+    const s = editParams.saturation / 100
+    // 构建基础滤镜串
+    let str = `brightness(${b}) contrast(${c}) saturate(${s})`
+    // 色温处理逻辑
+    const temp = editParams.temperature
+    if (temp > 0) {
+        // 暖色调
+        const sepiaVal = temp / 2 / 100 // 范围0.0-0.25
+        // 饱和度补偿系数
+        const saturateComp = (100 + temp / 2) / 100 
+        
+        str += ` sepia(${sepiaVal}) hue-rotate(-30deg) saturate(${saturateComp})`
+    } else if (temp < 0) {
+        // 冷色调
+        const sepiaVal = Math.abs(temp) / 2 / 100 // 范围0.0-0.25
+        
+        str += ` sepia(${sepiaVal}) hue-rotate(180deg)`
+    }
+    
+    return str
+}
+
 // 返回滤镜字符串供CSS变量使用
+// CSS预览逻辑
+// 使用sepia+hue-rotate进行近似模拟
 const filterString = computed(() => {
-    return `brightness(${editParams.brightness}%) contrast(${editParams.contrast}%) saturate(${editParams.saturation}%)`
+    // 直接调用共享函数，保证与保存逻辑一致
+    return generateSharedFilterString()
 })
 
 // 初始化Cropper
@@ -247,6 +350,7 @@ const resetParams = () => {
     editParams.brightness = 100
     editParams.contrast = 100
     editParams.saturation = 100
+    editParams.temperature = 0
 }
 
 // 应用滤镜并保存
@@ -261,15 +365,13 @@ const applyFilterToCanvas = (sourceCanvas) => {
     filterCanvas.height = height
     const ctx = filterCanvas.getContext('2d')
 
-    // 将CSS滤镜格式转换为Canvas滤镜格式
-    const b = editParams.brightness / 100
-    const c = editParams.contrast / 100
-    const s = editParams.saturation / 100
-    
-    // 设置Canvas滤镜字符串
-    ctx.filter = `brightness(${b}) contrast(${c}) saturate(${s})`
+    // 调用同一个共享函数获取滤镜字符串
+    const finalFilterStr = generateSharedFilterString()
 
-    // 将源Canvas绘制到滤镜Canvas上
+    // 设置Canvas滤镜
+    // 浏览器Canvas引擎将使用这个字符串进行像素计算
+    ctx.filter = finalFilterStr
+
     ctx.drawImage(sourceCanvas, 0, 0, width, height)
 
     return filterCanvas
@@ -302,25 +404,48 @@ const handleSaveEdit = () => {
         }
         // 构造FormData上传
         const formData = new FormData()
-        // 使用原文件名,后缀为jpg
-        const newFilename = imageInfo.value.originalFilename.replace(/\.\w+$/, '.jpg')
-        // 第三个参数指定文件名
-        formData.append('file', blob, newFilename) 
-
         try {
-            // 调用后端更新接口
-            await request.post(`/images/${imageId}/content`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            })
-            ElMessage.success('编辑保存成功')
-            showCrop.value = false
-            // 重新加载详情以查看最新图片
-            fetchDetail()
+            if (saveType.value === 'overwrite') {
+                // 覆盖原图
+                const filename = imageInfo.value.originalFilename.replace(/\.\w+$/, '.jpg')
+                formData.append('file', blob, filename)
+                await request.post(`/images/${imageId}/content`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                ElMessage.success('覆盖保存成功')
+                // 关闭编辑器
+                showCrop.value = false
+                // 刷新当前详情页
+                fetchDetail()
+            } else {
+                // 另存为新图
+                // 构造新文件名
+                const finalName = `${newFilename.value}.jpg`
+                formData.append('file', blob, finalName)
+                // 调用上传接口
+                const res = await request.post('/images/upload', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                })
+                ElMessage.success('另存成功')
+                // 关闭编辑器
+                showCrop.value = false
+                // 询问用户是否跳转到新图片
+                // res应该是后端upload接口返回的新图片ID或对象
+                // 假设后端upload接口返回的是 "上传成功" 字符串，那就没法跳转；
+                // 如果后端返回了新图片的ID，我们可以跳转
+                ElMessageBox.confirm('图片已另存，是否返回图库查看？', '提示', {
+                    confirmButtonText: '返回图库',
+                    cancelButtonText: '留在本页'
+                }).then(() => {
+                    router.push('/gallery')
+                }).catch(() => {
+                    // 留在本页
+                })
+            }
         } catch (error) {
             console.error("保存失败", error)
         } finally {
             editLoading.value = false
-            // 清理临时 canvas 内存
             finalCanvas.remove()
             rawCroppedCanvas.remove()
         }
@@ -382,7 +507,7 @@ const deleteImage = () => {
     .catch(() => {})
 }
 
-// AI 标签生成
+// AI标签生成
 const generateAiTags = () => {
   ElMessage.info('正在调用 AI 模型分析图片内容...')
   // 模拟异步请求
@@ -684,7 +809,13 @@ onMounted(() => {
 }
 
 .slider-group {
-    margin-bottom: 25px;
+    margin-bottom: 35px;
+}
+
+:deep(.el-slider__marks-text) {
+    font-size: 12px;
+    color: #909399;
+    margin-top: 5px;
 }
 
 .slider-group .label {
