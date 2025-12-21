@@ -17,7 +17,7 @@
     <div class="right-panel">
       
       <div class="section-block">
-        <h3 class="title">图片详情</h3>
+        <h3 class="title">图片基本信息</h3>
         <el-descriptions :column="1" border size="default">
           <el-descriptions-item label="文件名">
             <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -26,6 +26,14 @@
                 </span>
                 <el-button link type="primary" :icon="Edit" @click="handleRename"></el-button>
             </div>
+          </el-descriptions-item>
+          
+          <el-descriptions-item label="文件大小">
+            {{ formatSize(imageInfo?.fileSize || 0) }}
+          </el-descriptions-item>
+          
+          <el-descriptions-item label="上传时间">
+            {{ formatTime(imageInfo?.uploadedAt) }}
           </el-descriptions-item>
         </el-descriptions>
       </div>
@@ -730,17 +738,26 @@ const getImageUrl = (path, isThumbnail = true) => {
   return baseUrl + query
 }
 
-const formatSize = (bytes) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+// 文件大小格式化
+const formatSize = (size) => {
+    if (!size) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(size) / Math.log(k))
+    return (size / Math.pow(k, i)).toPrecision(3) + ' ' + sizes[i]
 }
 
+// 时间格式化
 const formatTime = (timeStr) => {
-  if (!timeStr) return '-'
-  return timeStr.replace('T', ' ').substring(0, 19)
+    if (!timeStr) return '-'
+    const date = new Date(timeStr)
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    })
 }
 
 // 初始化
