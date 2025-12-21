@@ -34,7 +34,7 @@ public class ImageController {
         return imageService.searchAdvanced(request, userId);
     }
 
-    // 搜索图片
+    // 列图片
     @GetMapping("/list")
     public Page<Image> list(@RequestParam(defaultValue = "1") Integer page,
                             @RequestParam(defaultValue = "20") Integer size,
@@ -42,11 +42,24 @@ public class ImageController {
                             @RequestAttribute("userId") Long userId) {
         return imageService.search(page, size, keyword, userId);
     }
+
+    // 添加标签接口
+    @PostMapping("/{imageId}/tags")
+    public String addTag(@PathVariable Long imageId, @RequestParam String tagName) {
+        imageService.addTag(imageId, tagName);
+        return "标签添加成功";
+    }
+
+    // 删除标签接口
+    @DeleteMapping("/{imageId}/tags")
+    public String removeTag(@PathVariable Long imageId, @RequestParam String tagName) {
+        imageService.removeTag(imageId, tagName);
+        return "标签删除成功";
+    }
     
     // 图片裁剪
     @PostMapping("/{id}/crop")
     public String crop(@PathVariable Long id, @RequestBody Map<String, Integer> rect) throws IOException {
-        // 简化演示：实际应先查 DB 找路径
         String srcPath = "/data/images/original/test.jpg"; 
         String outPath = "/data/images/original/test_crop.jpg";
         

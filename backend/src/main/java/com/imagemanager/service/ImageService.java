@@ -92,6 +92,47 @@ public class ImageService {
         }
     }
 
+    // 添加标签
+    @Transactional
+    public void addTag(Long imageId, String tagName) {
+        if (tagName == null || tagName.trim().isEmpty()) return;
+        // 查找标签是否已经存在，不存在则新建
+        Tag tag = tagMapper.selectOne(new QueryWrapper<Tag>().eq("tag_name", tagName));
+        if (tag == null) {
+            tag = new Tag();
+            tag.setTagName(tagName);
+            tag.setTagType("custom"); // 用户自定义标签
+            tagMapper.insert(tag);
+        }
+        // 建立关联
+        Long tagId = tag.getTagId();
+        Long count = imageTagMapper.selectCount(
+            new QueryWrapper<ImageTag>()
+                .eq("image_id", imageId)
+                .eq("tag_id", tagId)
+        );
+        if (count == 0) {
+            ImageTag relation = new ImageTag();
+            relation.setImageId(imageId);
+            relation.setTagId(tagId);
+            imageTagMapper.insert(relation);
+        }
+    }
+
+    // 移除标签
+    @Transactional
+    public void removeTag(Long imageId, String tagName) {
+        // 找到标签ID
+        Tag tag = tagMapper.selectOne(new QueryWrapper<Tag>().eq("tag_name", tagName));
+        if (tag == null) return;
+        // 删除关联表中的记录
+        imageTagMapper.delete(
+            new QueryWrapper<ImageTag>()
+                .eq("image_id", imageId)
+                .eq("tag_id", tag.getTagId())
+        );
+    }
+    
     // 创建标签并关联，防止重复
     private void addSystemTag(Long imageId, String tagName) {
         // 检查标签是否存在，不存在则创建

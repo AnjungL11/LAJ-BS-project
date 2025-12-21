@@ -159,11 +159,24 @@ const generateAiTags = () => {
   }, 1500)
 }
 
-// 标签管理逻辑
-const removeTag = (index) => {
-  tags.value.splice(index, 1)
+// 删除标签
+const removeTag = async (index) => {
+  const tagToRemove = tags.value[index]
+  try {
+    // 调用后端删除接口
+    await request.delete(`/images/${imageId}/tags`, { 
+      params: { tagName: tagToRemove } 
+    })
+    
+    // 后端删除成功后更新前端视图
+    tags.value.splice(index, 1)
+    ElMessage.success('标签已移除')
+  } catch (error) {
+    console.error(error)
+  }
 }
 
+// 显示输入框
 const showInput = () => {
   inputVisible.value = true
   nextTick(() => {
@@ -171,10 +184,33 @@ const showInput = () => {
   })
 }
 
-const handleInputConfirm = () => {
+// 确认添加标签
+const handleInputConfirm = async () => {
   if (inputValue.value) {
-    tags.value.push(inputValue.value)
+    const newTag = inputValue.value
+    // 去重检查
+    if (tags.value.includes(newTag)) {
+        ElMessage.warning('标签已存在')
+        inputVisible.value = false
+        inputValue.value = ''
+        return
+    }
+
+    try {
+      // 调用后端添加接口
+      await request.post(`/images/${imageId}/tags`, null, { 
+        params: { tagName: newTag } 
+      })
+      
+      // 后端保存成功后更新前端数组
+      tags.value.push(newTag)
+      ElMessage.success('标签添加成功')
+    } catch (error) {
+       console.error(error)
+    }
   }
+  
+  // 重置输入框状态
   inputVisible.value = false
   inputValue.value = ''
 }
