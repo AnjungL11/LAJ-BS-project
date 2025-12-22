@@ -225,7 +225,8 @@ const fetchImages = async () => {
       tags: searchForm.tags,
       cameraModel: searchForm.cameraModel,
       startTime: dateRange.value && dateRange.value.length === 2 ? dateRange.value[0] : null,
-      endTime: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : null
+      endTime: dateRange.value && dateRange.value.length === 2 ? dateRange.value[1] : null,
+      _t: new Date().getTime()
     }
     const res = await request.post('/images/search', payload)
     imageList.value = res.records

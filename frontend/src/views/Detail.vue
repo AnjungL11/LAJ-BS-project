@@ -39,8 +39,20 @@
       </div>
       
       <div class="section-block" style="margin-top: 20px;">
-         <div class="section-header"><h4>标签管理</h4></div>
-         <div class="tags">
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h4>图片标签</h4>
+            <el-button 
+              type="primary" 
+              link 
+              :icon="MagicStick" 
+              :loading="analyzing" 
+              @click="handleAIAnalyze"
+            >
+              AI 智能分析
+            </el-button>
+         </div>
+
+          <div class="tags">
             <el-tag 
               v-for="(tag, index) in tags" 
               :key="index" 
@@ -269,6 +281,7 @@ const loading = ref(false)
 const downloadDialogVisible = ref(false)
 const downloadFilename = ref('')
 const downloading = ref(false)
+const analyzing = ref(false)
 
 // 编辑器相关状态
 const showCrop = ref(false)
@@ -737,6 +750,47 @@ const getImageUrl = (path, isThumbnail = true) => {
   // 拼接前端代理路径
   const baseUrl = isThumbnail ? `/uploads/thumb/${filename}` : `/uploads/original/${filename}`
   return baseUrl + query
+}
+
+// AI分析处理函数
+const handleAIAnalyze = async () => {
+  analyzing.value = true
+  try {
+    // 调用后端接口
+    const res = await request.post(`/images/${route.params.id}/analyze`)
+    // 获取后端返回的原始标签列表
+    const fetchedTags = (res && Array.isArray(res.data)) ? res.data : (Array.isArray(res) ? res : [])
+
+    if (fetchedTags.length > 0) {
+      // 计算实际新增的标签
+      let addedCount = 0
+      fetchedTags.forEach(tag => {
+          // 只有当当前列表里没有这个标签时才添加并计数
+          if (!tags.value.includes(tag)) {
+              tags.value.push(tag)
+              addedCount++
+          }
+      })
+      // 根据实际新增的数量显示提示
+      if (addedCount > 0) {
+          ElMessage.success(`识别成功，新增 ${addedCount} 个标签`)
+          // 同步更新imageInfo，防止页面切换丢失
+          if (imageInfo.value) {
+              imageInfo.value.tags = [...tags.value] 
+          }
+      } else {
+          // 如果后端返回标签但都已经有了
+          ElMessage.info('AI 识别结果已存在，未添加重复标签')
+      }
+    } else {
+      ElMessage.warning('未能识别出新标签')
+    }
+  } catch (error) {
+    console.error("AI分析出错:", error)
+    ElMessage.error('AI 分析服务响应异常')
+  } finally {
+    analyzing.value = false
+  }
 }
 
 // 文件大小格式化

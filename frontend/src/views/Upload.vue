@@ -36,6 +36,13 @@ const uploadHeaders = computed(() => ({
 
 const handleSuccess = (response) => {
   ElMessage.success('图片上传成功')
+  // 清空当前上传列表，避免下次进来还在
+  fileList.value = []
+  
+  // 稍微延迟一下跳转，让数据库有时间提交事务
+  setTimeout(() => {
+    router.push('/gallery')
+  }, 500)
 }
 const handleError = () => {
   ElMessage.error('上传失败，请重试')

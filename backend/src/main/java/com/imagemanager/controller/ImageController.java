@@ -3,6 +3,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.imagemanager.entity.Image;
 import com.imagemanager.service.ImageService;
 import com.imagemanager.service.McpService;
+import com.imagemanager.service.AIService;
+import com.imagemanager.common.Result;
 
 import jakarta.servlet.http.HttpServletResponse;
 import net.coobird.thumbnailator.Thumbnails;
@@ -21,6 +23,7 @@ public class ImageController {
 
     @Autowired private ImageService imageService;
     @Autowired private McpService mcpService;
+    @Autowired private AIService aiService;
 
     // 上传图片
     @PostMapping("/upload")
@@ -122,5 +125,26 @@ public class ImageController {
         var tags = mcpService.parseNaturalLanguage(naturalLanguage);
         // 拿到tags后再次调用search逻辑
         return Map.of("interpreted_tags", tags, "result", "Search logic here...");
+    }
+
+    // AI分析接口
+    @PostMapping("/{id}/analyze")
+    public Result analyzeImage(@PathVariable Long id) {
+        // 查图片信息
+        Image image = imageService.getById(id);
+        if (image == null) {
+            return Result.error("图片不存在");
+        }
+        // 获取图片本地绝对路径
+        String fullPath = image.getStoragePath(); 
+        // 调用AI分析
+        List<String> newTags = aiService.analyzeImage(fullPath);
+        if (newTags == null || newTags.isEmpty()) {
+            return Result.error("未能识别出有效内容或AI服务异常");
+        }
+        // 将新标签批量保存到数据库
+        imageService.updateImageTags(id, newTags); 
+        // 返回新标签给前端
+        return Result.success(newTags);
     }
 }

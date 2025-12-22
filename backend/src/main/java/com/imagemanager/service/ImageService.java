@@ -95,6 +95,29 @@ public class ImageService {
         }
     }
 
+    /**
+     * 批量更新图片AI标签
+     * @param imageId 图片ID
+     * @param tags 标签列表
+     */
+    @Transactional
+    public void updateImageTags(Long imageId, List<String> tags) {
+        if (tags == null || tags.isEmpty()) return;
+
+        for (String tagName : tags) {
+            // 复用已有的addSystemTag方法
+            // AI识别出的标签会被标记为"system" 类型
+            addSystemTag(imageId, tagName);
+        }
+    }
+
+    /**
+     * 简单的按ID获取图片信息
+     */
+    public Image getById(Long imageId) {
+        return imageMapper.selectById(imageId);
+    }
+
     // 获取图片完整详情
     public Image getDetail(Long imageId) {
         // 查主表
