@@ -366,8 +366,8 @@ const initCropper = () => {
     nextTick(() => {
         if (cropImgRef.value && !cropperInstance.value) {
             cropperInstance.value = new Cropper(cropImgRef.value, {
-                // 限制裁剪框不超过画布
-                viewMode: 1,
+                // 确保图片始终适应容器，不会被强制裁剪
+                viewMode: 2,
                 // 模式：移动画布
                 dragMode: 'move',
                 // 自由比例
@@ -381,6 +381,8 @@ const initCropper = () => {
                 cropBoxMovable: true,
                 cropBoxResizable: true,
                 toggleDragModeOnDblclick: false,
+                // 解决部分图片跨域问题
+                checkCrossOrigin: false,
             })
         }
     })
@@ -398,12 +400,16 @@ const destroyCropper = () => {
 // 旋转图片
 const rotateLeft = () => {
     if (cropperInstance.value) {
+        // 旋转前先清除已有的裁剪框，避免旧裁剪框导致显示异常
+        cropperInstance.value.clear();
         cropperInstance.value.rotate(-90) // 逆时针旋转90度
     }
 }
 
 const rotateRight = () => {
     if (cropperInstance.value) {
+        // 旋转前先清除已有的裁剪框，避免旧裁剪框导致显示异常
+        cropperInstance.value.clear();
         cropperInstance.value.rotate(90) // 顺时针旋转90度
     }
 }
