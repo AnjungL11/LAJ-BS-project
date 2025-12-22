@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 
 const service = axios.create({
   baseURL: '/api', // 匹配vite代理
-  timeout: 5000
+  timeout: 30000 // 请求超时时间
 })
 
 // 请求拦截器，添加Token
