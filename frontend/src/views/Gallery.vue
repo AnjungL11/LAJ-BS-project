@@ -31,9 +31,51 @@
       </div>
     </div>
 
-    <el-drawer v-model="showFilter" title="高级检索" size="300px">
-        <template #footer>
-        <div style="flex: auto"><el-button @click="resetFilter">重置</el-button><el-button type="primary" @click="handleSearch">搜索</el-button></div>
+    <el-drawer v-model="showFilter" title="高级检索" size="320px">
+      <div class="filter-content">
+        <el-form label-position="top">
+          
+          <el-form-item label="拍摄时间范围">
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <el-form-item label="包含标签">
+            <el-select
+              v-model="searchForm.tags"
+              multiple
+              filterable
+              allow-create
+              default-first-option
+              placeholder="输入或选择标签"
+              style="width: 100%"
+            >
+              </el-select>
+          </el-form-item>
+
+          <el-form-item label="相机/设备型号">
+            <el-input 
+              v-model="searchForm.cameraModel" 
+              placeholder="例如: iPhone 13, Sony A7M4" 
+              clearable 
+            />
+          </el-form-item>
+
+        </el-form>
+      </div>
+
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <el-button @click="resetFilter">重置条件</el-button>
+          <el-button type="primary" @click="handleSearch">立即搜索</el-button>
+        </div>
       </template>
     </el-drawer>
 
