@@ -53,7 +53,7 @@ public class WebConfig implements WebMvcConfigurer {
                 response.setStatus(401);
                 return false;
             }
-        }).addPathPatterns("/api/**").excludePathPatterns("/api/auth/**");
+        }).addPathPatterns("/api/**").excludePathPatterns("/api/auth/**", "/api/mcp/**");
     }
     
     // 配置静态资源映射，使前端能访问本地上传的图片

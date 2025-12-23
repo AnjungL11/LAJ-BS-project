@@ -664,8 +664,10 @@ const deleteImage = () => {
       type: 'warning',
     }
   ).then(async () => {
-      // 调用后端删除接口（需后端实现 DeleteMapping）
-      // await request.delete(`/images/${imageId}`)
+      // 即使只删一张，也包装成数组格式发送，确保后端能处理
+      const idsToDelete = [imageId] 
+      // 发送POST请求到批量删除接口
+      await request.post('/images/batch-delete', idsToDelete)
       ElMessage.success('删除成功')
       router.push('/gallery')
     })

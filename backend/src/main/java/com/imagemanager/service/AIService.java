@@ -42,7 +42,7 @@ public class AIService {
                     String keyword = item.getString("keyword");
                     double score = item.getDouble("score");
                     // 只取置信度高的结果，且排除无意义的词
-                    if (score > 0.1 && !"图像".equals(keyword)) {
+                    if (score > 0.2 && !"图像".equals(keyword)) {
                         tags.add(keyword);
                     }
                 }

@@ -118,15 +118,6 @@ public class ImageController {
         return "图片编辑保存成功";
     }
 
-    // MCP接口,大模型对话检索
-    @PostMapping("/mcp/search")
-    public Object mcpSearch(@RequestBody Map<String, String> body) {
-        String naturalLanguage = body.get("query");
-        var tags = mcpService.parseNaturalLanguage(naturalLanguage);
-        // 拿到tags后再次调用search逻辑
-        return Map.of("interpreted_tags", tags, "result", "Search logic here...");
-    }
-
     // AI分析接口
     @PostMapping("/{id}/analyze")
     public Result analyzeImage(@PathVariable Long id) {

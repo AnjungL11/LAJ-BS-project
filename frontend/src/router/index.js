@@ -15,7 +15,9 @@ const router = createRouter({
       children: [
         { path: 'gallery', component: () => import('../views/Gallery.vue') },
         { path: 'upload', component: () => import('../views/Upload.vue') },
-        { path: 'detail/:id', component: () => import('../views/Detail.vue') }
+        { path: 'detail/:id', component: () => import('../views/Detail.vue') },
+        { path: 'tags', name: 'TagManager', component: () => import('../views/TagManager.vue'),meta: { title: '标签管理' }},
+        { path: 'tags/:id', name: 'TagAlbum', component: () => import('../views/TagAlbum.vue'), meta: { title: '标签相册' }}
       ]
     }
   ]

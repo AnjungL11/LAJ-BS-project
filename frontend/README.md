@@ -8,6 +8,7 @@ cd frontend
 ```powershell
 npm install
 npm install cropperjs@1.6.2
+npm install vuedraggable@next --save
 ```
 运行前端。
 ```powershell

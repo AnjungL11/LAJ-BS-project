@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS tags (
     tag_type ENUM('system', 'ai', 'custom') NOT NULL COMMENT '标签类型: system(EXIF), ai(模型), custom(用户)'
 );
 
+ALTER TABLE tags ADD COLUMN cover_type VARCHAR(20) DEFAULT 'color' COMMENT '封面类型: color/image';
+ALTER TABLE tags ADD COLUMN cover_color VARCHAR(20) DEFAULT '#409EFF' COMMENT '封面颜色';
+ALTER TABLE tags ADD COLUMN cover_url VARCHAR(500) DEFAULT NULL COMMENT '封面图片路径';
+ALTER TABLE tags ADD COLUMN sort_order INT DEFAULT 0 COMMENT '排序权重';
+CREATE INDEX idx_tag_sort ON tags(sort_order);
+
 /*图片元数据表 (Image_Metadata)*/
 CREATE TABLE IF NOT EXISTS image_metadata (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
