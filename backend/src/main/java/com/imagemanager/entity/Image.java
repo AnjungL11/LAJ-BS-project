@@ -15,6 +15,8 @@ public class Image {
     private String thumbnailPath;
     private Long fileSize;
     private LocalDateTime uploadedAt;
+
+    private LocalDateTime takenTime;
     
     // 元数据对象
     @TableField(exist = false)

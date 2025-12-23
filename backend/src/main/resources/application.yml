@@ -17,3 +17,7 @@ app:
   storage-path: D:/data/images/original/  # 原图存储路径
   thumbnail-path: D:/data/images/thumbs/  # 缩略图存储路径
   jwt-secret: 123456         # JWT密钥
+
+deepseek:
+  api-key: sk-86c2f0f739e2472b811ad70ac26162a5 
+  base-url: https://api.deepseek.com

@@ -19,18 +19,28 @@ public class McpController {
      * 接收MCP脚本的搜索请求
      */
     @PostMapping("/search")
-    public Result<String> mcpSearch(@RequestBody Map<String, Object> params) {
+    public Result<Map<String, Object>> mcpSearch(@RequestBody Map<String, Object> params) {
         try {
-            // 解析参数
+            // 把前端传过来的映射给keyword
             String keyword = (String) params.get("keyword");
+            
+            // 兼容性处理
+            if (keyword == null && params.containsKey("query")) {
+                keyword = (String) params.get("query");
+            }
+
             List<String> tags = (List<String>) params.get("tags");
             String cameraModel = (String) params.get("cameraModel");
             String startDate = (String) params.get("startDate");
             String endDate = (String) params.get("endDate");
+            
+            // 暂时硬编码userId，后续可从Token获取
             Long userId = 1L; 
-            // 调用Service
-            String markdownResponse = mcpService.executeSearch(keyword, tags, cameraModel, startDate, endDate, userId);
-            return Result.success(markdownResponse);
+
+            // 调用修改后的Service
+            Map<String, Object> response = mcpService.executeSearch(keyword, tags, cameraModel, startDate, endDate, userId);
+            
+            return Result.success(response);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.error("搜索失败: " + e.getMessage());

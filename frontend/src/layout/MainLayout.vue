@@ -36,6 +36,12 @@
         <el-menu-item index="/tags" @click="$router.push('/tags')">
           <el-icon><Collection /></el-icon><span>标签管理</span>
         </el-menu-item>
+        
+        <el-menu-item index="/ai" @click="handleMobileNavigate('/ai')">
+          <el-icon><ChatDotRound /></el-icon>
+          <span style="color: #764ba2; font-weight: bold;">AI 助手</span>
+        </el-menu-item>
+
         <el-menu-item @click="handleLogout">
           <el-icon><SwitchButton /></el-icon><span>退出登录</span>
         </el-menu-item>
@@ -56,6 +62,12 @@
         <el-menu-item index="/tags" @click="$router.push('/tags')">
           <el-icon><Collection /></el-icon><span>标签管理</span>
         </el-menu-item>
+
+        <el-menu-item index="/ai" @click="handleMobileNavigate('/ai')">
+          <el-icon><ChatDotRound /></el-icon>
+          <span style="color: #764ba2; font-weight: bold;">AI 助手</span>
+        </el-menu-item>
+
         <el-menu-item @click="handleLogout">
           <el-icon><SwitchButton /></el-icon><span>退出登录</span>
         </el-menu-item>
@@ -90,9 +102,6 @@ const handleMobileNavigate = (path) => {
 </script>
 
 <style scoped>
-/* 【核心修复】
-   使用 !important 强制覆盖 Element Plus 因为检测到 el-header 而自动添加的 is-vertical 样式
-*/
 #app-wrapper.app-wrapper { 
   width: 100%;
   height: 100vh; 
@@ -101,7 +110,7 @@ const handleMobileNavigate = (path) => {
   overflow: hidden; 
 }
 
-/* --- 电脑端侧边栏 --- */
+/* 电脑端侧边栏 */
 .sidebar { 
   background: #fff; 
   border-right: 1px solid #eee; 
@@ -124,18 +133,18 @@ const handleMobileNavigate = (path) => {
 .logo .el-icon { margin-right: 8px; font-size: 22px; }
 .el-menu-vertical { border-right: none; flex: 1; }
 
-/* --- 主内容区 --- */
+/* 主内容区 */
 .main-content { 
   background: #f5f7fa; 
   padding: 20px; 
   flex: 1; /* 占满剩余空间 */
   height: 100%; 
   overflow-y: auto; 
-  min-width: 0; /* 防止内部宽元素(如Grid)撑破Flex容器 */
+  min-width: 0; /* 防止内部宽元素撑破Flex容器 */
   display: block; /* 确保是块级显示 */
 }
 
-/* --- 手机端顶部栏 --- */
+/* 手机端顶部栏 */
 .mobile-header {
   display: none; /* 电脑端隐藏 */
   background: #fff;
@@ -148,7 +157,7 @@ const handleMobileNavigate = (path) => {
 .header-left { display: flex; align-items: center; gap: 10px; height: 100%; }
 .mobile-title { font-weight: bold; color: #764ba2; font-size: 16px; }
 
-/* --- 抽屉样式 --- */
+/* 抽屉样式 */
 .drawer-header-row {
   height: 60px;
   display: flex;
@@ -160,27 +169,24 @@ const handleMobileNavigate = (path) => {
 .drawer-logo { display: flex; align-items: center; font-weight: bold; color: #764ba2; font-size: 18px; }
 .drawer-logo .el-icon { margin-right: 8px; }
 
-/* =========================================
-   响应式核心代码 (屏幕 < 768px 时生效)
-   ========================================= */
 @media (max-width: 768px) {
   
-  /* 1. 改变主容器方向：强制垂直排列 */
+  /* 改变主容器方向,强制垂直排列 */
   #app-wrapper.app-wrapper {
     flex-direction: column !important; /* 手机端强制纵向排列 (上Header+下Content) */
   }
 
-  /* 2. 隐藏电脑端侧边栏 */
+  /* 隐藏电脑端侧边栏 */
   .desktop-sidebar {
     display: none !important;
   }
 
-  /* 3. 显示手机端顶部栏 */
+  /* 显示手机端顶部栏 */
   .mobile-header {
     display: flex !important;
   }
 
-  /* 4. 调整内容区 */
+  /* 调整内容区 */
   .main-content {
     padding: 10px;
     height: auto; 
