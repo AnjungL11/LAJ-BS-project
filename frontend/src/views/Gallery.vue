@@ -1,5 +1,35 @@
 <template>
   <div class="gallery-page">
+    
+    <div class="recent-showcase" v-if="recentImages.length > 0">
+      <h3 class="showcase-title">✨ 最近上传</h3>
+      <el-carousel :interval="1500" type="card" height="220px" indicator-position="outside">
+        <el-carousel-item v-for="item in recentImages" :key="item.imageId">
+          <div class="carousel-card-wrapper" @click="handleCardClick(item)">
+            <el-image 
+              :src="getImageUrl(item.thumbnailPath, true, item.fileSize)" 
+              fit="cover" 
+              class="recent-img"
+              loading="lazy"
+            >
+              <template #placeholder>
+                <div class="image-slot loading">
+                  <el-icon class="is-loading"><Loading /></el-icon>
+                </div>
+              </template>
+              <template #error>
+                <div class="image-slot error">
+                  <el-icon><PictureFilled /></el-icon>
+                </div>
+              </template>
+            </el-image>
+            <div class="recent-info-mask">
+              <span class="recent-fname">{{ item.originalFilename }}</span>
+            </div>
+          </div>
+        </el-carousel-item>
+      </el-carousel>
+    </div>
     <div class="toolbar">
       <div class="search-group">
         <el-input 
@@ -26,8 +56,6 @@
           选择 / 管理
         </el-button>
         <el-button v-else plain @click="exitSelectionMode">退出选择</el-button>
-
-        <el-button type="primary" :icon="Upload" @click="$router.push('/upload')">上传</el-button>
       </div>
     </div>
 
@@ -159,7 +187,7 @@
     </transition>
 
     <el-dialog v-model="carouselVisible" fullscreen append-to-body class="carousel-dialog" :show-close="true">
-      <el-carousel :autoplay="true" :interval="4000" arrow="always" height="100vh" indicator-position="none" pause-on-hover>
+      <el-carousel :autoplay="true" :interval="1500" arrow="always" height="100vh" indicator-position="none" pause-on-hover>
         <el-carousel-item v-for="img in carouselList" :key="img.imageId">
           <div class="carousel-item-wrapper">
             <img 
@@ -175,10 +203,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue' // 引入 computed
+import { ref, reactive, onMounted, computed } from 'vue'
 import request from '../utils/request'
 import { useRouter } from 'vue-router'
-import { Search, Upload, Filter, VideoPlay, List, Delete } from '@element-plus/icons-vue' // 引入 Delete 图标
+import { Search, Upload, Filter, VideoPlay, List, Delete, Loading, PictureFilled } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -194,8 +222,8 @@ const selectedIds = ref(new Set())
 const carouselVisible = ref(false)
 const carouselList = ref([])
 
-// 判断是否全选了当前页
-// 当前页所有图片的ID都在selectedIds里，且列表不为空
+const recentImages = ref([])
+
 const isAllSelected = computed({
   get: () => {
     if (imageList.value.length === 0) return false
@@ -236,14 +264,33 @@ const fetchImages = async () => {
   }
 }
 
+// 获取最近10张图片
+const fetchRecentImages = async () => {
+  try {
+    // 构造一个查询参数，只查第1页，10条
+    const payload = {
+      page: 1,
+      size: 10,
+      filename: '',
+      tags: [],
+      cameraModel: '',
+      startTime: null,
+      endTime: null
+    }
+    const res = await request.post('/images/search', payload)
+    recentImages.value = res.records || []
+  } catch (error) {
+    console.error("获取最近上传失败", error)
+  }
+}
+
 // 播放逻辑
-// 播放所有
 const playAll = () => {
   if (imageList.value.length === 0) {
     ElMessage.warning('当前列表没有图片可播放')
     return
   }
-  carouselList.value = [...imageList.value] // 复制当前列表
+  carouselList.value = [...imageList.value]
   carouselVisible.value = true
 }
 
@@ -266,6 +313,7 @@ const exitSelectionMode = () => {
   selectedIds.value.clear()
 }
 
+// 卡片点击逻辑
 const handleCardClick = (img) => {
   if (isSelectionMode.value) {
     toggleSelection(img.imageId, !selectedIds.value.has(img.imageId))
@@ -279,18 +327,14 @@ const toggleSelection = (id, checked) => {
   else selectedIds.value.delete(id)
 }
 
-// 全选逻辑
 const handleSelectAll = (checked) => {
   if (checked) {
-    // 将当前页所有ID加入Set
     imageList.value.forEach(img => selectedIds.value.add(img.imageId))
   } else {
-    // 将当前页所有ID从Set移除
     imageList.value.forEach(img => selectedIds.value.delete(img.imageId))
   }
 }
 
-// 批量删除逻辑
 const handleBatchDelete = () => {
   ElMessageBox.confirm(
     `确定要永久删除这 ${selectedIds.value.size} 张图片吗？此操作无法恢复。`,
@@ -302,22 +346,20 @@ const handleBatchDelete = () => {
     }
   ).then(async () => {
     try {
-      // 将Set转为Array发送给后端
       const idsToDelete = Array.from(selectedIds.value)
       await request.post('/images/batch-delete', idsToDelete)
       
       ElMessage.success('批量删除成功')
-      // 清空选中
       selectedIds.value.clear()
-      // 刷新列表
       fetchImages()
+      // 删除后同时也刷新一下顶部栏
+      fetchRecentImages()
     } catch (error) {
       console.error(error)
     }
   })
 }
 
-// 通用逻辑
 const handleSearch = () => {
   searchForm.page = 1
   showFilter.value = false
@@ -336,21 +378,94 @@ const handlePageChange = (val) => {
 const getImageUrl = (path, isThumbnail = true, version = '') => {
   if (!path) return ''
   const filename = path.replace(/\\/g, '/').split('/').pop()
-  // 基础URL
   let url = isThumbnail ? `/uploads/thumb/${filename}` : `/uploads/original/${filename}`
-  // 如果传入了版本号拼接到URL后面,更改缩略图
   if (version !== undefined && version !== null && version !== '') {
       const symbol = url.includes('?') ? '&' : '?'
       url += `${symbol}v=${version}`
   }
   return url
 }
-onMounted(fetchImages)
+
+// 挂载时同时获取主列表和最近上传
+onMounted(() => {
+  fetchImages()
+  fetchRecentImages()
+})
 </script>
 
 <style scoped>
 /* 基础布局 */
-.gallery-page { padding-bottom: 80px; /* 为底部悬浮栏留出空间 */ }
+.gallery-page { padding-bottom: 80px; }
+
+/* 顶部展示框样式 */
+.recent-showcase {
+  margin-bottom: 25px;
+}
+.showcase-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #303133;
+  margin-bottom: 15px;
+  padding-left: 5px;
+  border-left: 4px solid #409eff; /* 装饰条 */
+  line-height: 1;
+}
+
+/* 轮播卡片容器 */
+.carousel-card-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.recent-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 遮罩层信息 */
+.recent-info-mask {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  padding: 20px 15px 10px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* 悬停显示文件名 */
+.carousel-card-wrapper:hover .recent-info-mask {
+  opacity: 1;
+}
+
+.recent-fname {
+  color: #fff;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* 轮播图加载占位 */
+.image-slot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background: #f5f7fa;
+  color: #909399;
+  font-size: 24px;
+}
+
 .toolbar { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
 .search-group { display: flex; align-items: center; flex: 1; max-width: 600px; gap: 10px; }
 .search-input { flex: 1; }
@@ -398,10 +513,10 @@ onMounted(fetchImages)
   border-radius: 50px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   display: flex; align-items: center; justify-content: space-between;
-  gap: 30px; /* 增加间距 */
+  gap: 30px; 
   z-index: 100;
   border: 1px solid #ebeef5;
-  min-width: 400px; /* 保证宽度 */
+  min-width: 400px; 
 }
 
 .selection-left {
@@ -419,15 +534,13 @@ onMounted(fetchImages)
 }
 
 /* 轮播样式 */
-/* 弹窗背景变黑，且铺满全屏 */
 :deep(.carousel-dialog) {
-  background: #000 !important; /* 覆盖默认白色 */
+  background: #000 !important; 
   margin: 0 !important;
   display: flex;
   flex-direction: column;
 }
 
-/* 让关闭按钮悬浮 */
 :deep(.carousel-dialog .el-dialog__header) {
   position: absolute;
   top: 20px;
@@ -439,7 +552,6 @@ onMounted(fetchImages)
   width: auto;
 }
 
-/* 关闭按钮变大变白 */
 :deep(.carousel-dialog .el-dialog__headerbtn .el-dialog__close) {
   color: #fff !important;
   font-size: 30px;
@@ -447,11 +559,10 @@ onMounted(fetchImages)
   text-shadow: 0 0 5px rgba(0,0,0,0.5);
 }
 
-/* Body区域填满剩余空间，且去除内边距 */
 :deep(.carousel-dialog .el-dialog__body) {
   padding: 0 !important;
   margin: 0 !important;
-  height: 100vh; /* 关键：强制高度 */
+  height: 100vh; 
   overflow: hidden;
   background: #000;
 }
@@ -470,7 +581,7 @@ onMounted(fetchImages)
 .carousel-image {
   max-width: 100%;
   max-height: 100%;
-  object-fit: contain; /* 保证图片完整显示不裁剪 */
+  object-fit: contain; 
   display: block;
 }
 
@@ -483,19 +594,15 @@ onMounted(fetchImages)
   background: rgba(0,0,0,0.6);
   padding: 10px 30px;
   border-radius: 30px;
-  pointer-events: none; /* 防止遮挡图片点击 */
+  pointer-events: none; 
 }
 .carousel-caption h3 { margin: 0 0 5px 0; font-weight: normal; font-size: 18px; }
 .carousel-caption p { margin: 0; font-size: 14px; color: #ddd; }
 
-/* 移动端适配 */
 @media (max-width: 768px) {
-  /* 手机端缩小外边距 */
   .gallery-container {
     padding: 10px;
   }
-  
-  /* 调整标题大小 */
   h2 {
     font-size: 1.2rem;
   }

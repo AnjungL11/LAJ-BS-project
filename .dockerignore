@@ -1,0 +1,13 @@
+# 忽略前端依赖，防止 Windows 文件覆盖 Linux 文件
+frontend/node_modules
+frontend/dist
+
+# 忽略后端构建产物
+backend/target
+backend/src/main/resources/static/assets
+backend/src/main/resources/static/index.html
+
+# 忽略 git 目录和 IDE 配置
+.git
+.idea
+.vscode

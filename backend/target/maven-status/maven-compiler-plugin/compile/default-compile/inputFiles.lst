@@ -11,10 +11,12 @@ C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\co
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\service\McpService.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\mapper\TagMapper.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\utils\ImageProcessUtil.java
+C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\controller\TagController.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\mapper\MetadataMapper.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\service\ImageService.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\entity\Image.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\mapper\ImageTagMapper.java
+C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\controller\McpController.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\entity\ImageMetadata.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\ImageManagerApplication.java
 C:\Users\李安璟\Desktop\LAJ-BS-project\backend\src\main\java\com\imagemanager\controller\ImageController.java

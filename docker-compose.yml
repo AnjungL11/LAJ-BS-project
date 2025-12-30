@@ -1,0 +1,41 @@
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: image-manager-db
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: image_manager
+      MYSQL_TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  # 应用
+  app:
+    build: .
+    container_name: image-manager-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # 动态修改Spring Boot配置连接到mysql容器
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/image_manager?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123456
+      # 指定上传文件的存储路径
+      FILE_UPLOAD_PATH: /app/uploads/
+    volumes:
+      # 将容器内的上传目录映射到本地，确保图片不丢失
+      - ./uploads:/app/uploads
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

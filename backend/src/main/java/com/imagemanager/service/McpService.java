@@ -44,7 +44,7 @@ public class McpService {
         System.out.println("========== AI 深度搜索 ==========");
         System.out.println("用户输入: " + userQuery);
 
-        // 1. 调用 DeepSeek 分析
+        // 调用 DeepSeek 分析
         Map<String, Object> aiAnalysis = callDeepSeekToAnalyze(userQuery);
         
         String extractedKeyword = (String) aiAnalysis.getOrDefault("keyword", "");
@@ -55,7 +55,7 @@ public class McpService {
 
         System.out.println("AI 时间范围: " + aiStartDateStr + " ~ " + aiEndDateStr);
 
-        // 2. 解析时间
+        // 解析时间
         LocalDateTime start = null;
         LocalDateTime end = null;
         try {
@@ -65,10 +65,10 @@ public class McpService {
             System.err.println("时间解析错误: " + e.getMessage());
         }
 
-        // 3. 构建查询
+        // 构建查询
         QueryWrapper<Image> wrapper = new QueryWrapper<>();
         
-        // --- A. 内容匹配 (文件名 OR 标签) ---
+        // 内容匹配
         List<String> contentTags = new ArrayList<>();
         if (tags != null) contentTags.addAll(tags);
         if (extractedTags != null) contentTags.addAll(extractedTags);
@@ -91,8 +91,7 @@ public class McpService {
             });
         }
 
-        // --- B. 时间匹配 (关键修改) ---
-        // 逻辑：(标签匹配时间文本) OR (上传时间匹配) OR (EXIF Metadata 匹配)
+        // 时间匹配
         boolean hasTimeCondition = (start != null && end != null) || StringUtils.hasText(timeText);
 
         if (hasTimeCondition) {
@@ -100,29 +99,27 @@ public class McpService {
             final LocalDateTime fEnd = end;
             
             wrapper.and(w -> {
-                // 1. 匹配标签 (例如 "2024年12月")
+                // 匹配标签
                 if (StringUtils.hasText(timeText)) {
                     w.apply("EXISTS (SELECT 1 FROM image_tags it JOIN tags t ON it.tag_id = t.tag_id WHERE t.tag_name LIKE {0} AND it.image_id = images.image_id)", "%" + timeText + "%");
                 }
 
                 if (fStart != null && fEnd != null) {
-                    // 2. 匹配上传时间 (uploaded_at)
+                    // 匹配上传时间
                     w.or().between("uploaded_at", fStart, fEnd);
                     
-                    // 3. 匹配 EXIF 拍摄时间 (taken_time)
-                    // ▼▼▼▼▼▼ 修改点：直接查列，非常干净 ▼▼▼▼▼▼
+                    // 匹配EXIF拍摄时间
                     w.or().between("taken_time", fStart, fEnd);
                 }
             });
         }
-        
-        // C. 兜底
+    
+        // 兜底
         if (!hasContentCondition && !hasTimeCondition && StringUtils.hasText(userQuery)) {
             wrapper.like("original_filename", userQuery);
         }
 
-        // 4. 执行
-        // 注意：如果你的数据库不支持 JSON 函数，这里会报错，需要检查数据库版本 (MySQL 5.7+ 支持)
+        // 执行
         List<Image> results;
         try {
             results = imageMapper.selectList(wrapper);
@@ -138,7 +135,7 @@ public class McpService {
             }
         }
         
-        // 5. 返回结果
+        // 返回结果
         Map<String, Object> resultMap = new HashMap<>();
         resultMap.put("records", results);
         
@@ -155,9 +152,6 @@ public class McpService {
     }
 
     private Map<String, Object> callDeepSeekToAnalyze(String userQuery) {
-        // DeepSeek 调用逻辑保持不变，为了节省篇幅，请保留你上一步的 callDeepSeekToAnalyze 代码
-        // ... (此处省略，请确保保留原有的 callDeepSeekToAnalyze 方法) ...
-        // 如果你刚才全选删除了，请复制下面的完整方法：
         Map<String, Object> result = new HashMap<>();
         try {
             String today = LocalDate.now().toString();
