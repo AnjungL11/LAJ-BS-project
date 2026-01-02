@@ -24,7 +24,8 @@ docker-compose up -d
 ```
 导入数据库，执行如下命令（相应地数据库文件路径、用户名、密码等需要替换）
 ```powershell
-type C:\Users\李安璟\Desktop\LAJ-BS-project\database\init.sql | docker exec -i image-manager-db mysql -uroot -p123456 image_manager
+docker cp "C:\Users\李安璟\Desktop\LAJ-BS-project\database\init.sql" image-manager-db:/init.sql
+docker exec -i image-manager-db mysql -uroot -p123456 image_manager -e "source /init.sql"
 ```
 导入数据库后重启后端容器
 ```powershell

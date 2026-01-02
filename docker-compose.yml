@@ -3,6 +3,7 @@ services:
   mysql:
     image: mysql:8.0
     container_name: image-manager-db
+    command: --lower_case_table_names=1
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: image_manager
@@ -27,7 +28,8 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 123456
       # 指定上传文件的存储路径
-      FILE_UPLOAD_PATH: /app/uploads/
+      FILE_STORAGE_PATH: /app/uploads/original/
+      FILE_THUMB_PATH: /app/uploads/thumbs/
     volumes:
       # 将容器内的上传目录映射到本地，确保图片不丢失
       - ./uploads:/app/uploads

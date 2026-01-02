@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/image_manager?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/image_manager?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -14,8 +14,8 @@ spring:
 
 # 自定义配置
 app:
-  storage-path: D:/data/images/original/  # 原图存储路径
-  thumbnail-path: D:/data/images/thumbs/  # 缩略图存储路径
+  storage-path: ${FILE_STORAGE_PATH:D:/data/images/original/}
+  thumbnail-path: ${FILE_THUMB_PATH:D:/data/images/thumbs/}
   jwt-secret: 123456         # JWT密钥
 
 deepseek:

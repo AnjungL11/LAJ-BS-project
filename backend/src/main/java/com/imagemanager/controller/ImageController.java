@@ -9,9 +9,11 @@ import com.imagemanager.common.Result;
 import jakarta.servlet.http.HttpServletResponse;
 import net.coobird.thumbnailator.Thumbnails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.imagemanager.dto.ImageSearchRequest;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +26,10 @@ public class ImageController {
     @Autowired private ImageService imageService;
     @Autowired private McpService mcpService;
     @Autowired private AIService aiService;
+
+    // 注入路径配置，用于crop等操作
+    @Value("${app.storage-path}")
+    private String currentStoragePath;
 
     // 上传图片
     @PostMapping("/upload")
@@ -88,16 +94,39 @@ public class ImageController {
     }
     
     // 图片裁剪
+    // @PostMapping("/{id}/crop")
+    // public String crop(@PathVariable Long id, @RequestBody Map<String, Integer> rect) throws IOException {
+    //     String srcPath = "/data/images/original/test.jpg"; 
+    //     String outPath = "/data/images/original/test_crop.jpg";
+        
+    //     Thumbnails.of(srcPath)
+    //             .sourceRegion(rect.get("x"), rect.get("y"), rect.get("w"), rect.get("h"))
+    //             .size(rect.get("w"), rect.get("h"))
+    //             .toFile(outPath);
+    //     return "Crop Success: " + outPath;
+    // }
     @PostMapping("/{id}/crop")
     public String crop(@PathVariable Long id, @RequestBody Map<String, Integer> rect) throws IOException {
-        String srcPath = "/data/images/original/test.jpg"; 
-        String outPath = "/data/images/original/test_crop.jpg";
+        Image image = imageService.getById(id);
+        if (image == null) throw new RuntimeException("图片不存在");
+
+        // 获取纯文件名
+        String fileName = new File(image.getStoragePath()).getName(); 
+
+        // 拼接当前环境的真实路径
+        File srcFile = new File(currentStoragePath, fileName); 
         
-        Thumbnails.of(srcPath)
+        // 生成新文件名
+        String newFileName = fileName.replace(".", "_crop.");
+        File outFile = new File(currentStoragePath, newFileName);
+        
+        // 裁剪
+        Thumbnails.of(srcFile)
                 .sourceRegion(rect.get("x"), rect.get("y"), rect.get("w"), rect.get("h"))
                 .size(rect.get("w"), rect.get("h"))
-                .toFile(outPath);
-        return "Crop Success: " + outPath;
+                .toFile(outFile);
+        
+        return "Crop Success: " + newFileName;
     }
 
     // 批量删除接口
@@ -127,7 +156,9 @@ public class ImageController {
             return Result.error("图片不存在");
         }
         // 获取图片本地绝对路径
-        String fullPath = image.getStoragePath(); 
+        // String fullPath = image.getStoragePath(); 
+        String fileName = new File(image.getStoragePath()).getName();
+        String fullPath = new File(currentStoragePath, fileName).getAbsolutePath();
         // 调用AI分析
         List<String> newTags = aiService.analyzeImage(fullPath);
         if (newTags == null || newTags.isEmpty()) {

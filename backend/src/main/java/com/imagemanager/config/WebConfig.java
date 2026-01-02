@@ -7,7 +7,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.annotation.PostConstruct;
+import java.io.File;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -17,6 +17,14 @@ public class WebConfig implements WebMvcConfigurer {
     
     @Value("${app.thumbnail-path}")
     private String thumbnailPath; // D:/data/images/thumbs/
+
+    // 确保路径以/结尾
+    private String normalizePath(String path) {
+        if (!path.endsWith(File.separator) && !path.endsWith("/")) {
+            return path + File.separator;
+        }
+        return path;
+    }
 
     // 跨域配置
     @Override
@@ -46,14 +54,17 @@ public class WebConfig implements WebMvcConfigurer {
                 if (authHeader != null && authHeader.startsWith("Bearer ")) {
                     try {
                         Claims claims = JwtUtil.parseToken(authHeader.substring(7));
-                        request.setAttribute("userId", claims.get("userId").toString());
-                        return true;
+                        Object userIdObj = claims.get("userId");
+                        if(userIdObj != null) {
+                            request.setAttribute("userId", Long.valueOf(userIdObj.toString()));
+                            return true;
+                        }
                     } catch (Exception e) {}
                 }
                 response.setStatus(401);
                 return false;
             }
-        }).addPathPatterns("/api/**").excludePathPatterns("/api/auth/**", "/api/mcp/**");
+        }).addPathPatterns("/api/**").excludePathPatterns("/api/auth/**", "/api/mcp/**", "/uploads/**");
     }
     
     // 配置静态资源映射，使前端能访问本地上传的图片
