@@ -33,11 +33,9 @@ public class McpController {
             String cameraModel = (String) params.get("cameraModel");
             String startDate = (String) params.get("startDate");
             String endDate = (String) params.get("endDate");
-            
-            // 暂时硬编码userId，后续可从Token获取
             Long userId = 1L; 
 
-            // 调用修改后的Service
+            // 调用Service
             Map<String, Object> response = mcpService.executeSearch(keyword, tags, cameraModel, startDate, endDate, userId);
             
             return Result.success(response);
