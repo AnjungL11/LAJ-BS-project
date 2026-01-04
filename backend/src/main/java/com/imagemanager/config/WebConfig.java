@@ -11,7 +11,7 @@ import java.io.File;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    // 读取 application.yml 中的路径配置
+    // 读取application.yml中的路径配置
     @Value("${app.storage-path}")
     private String storagePath; // D:/data/images/original/
     
