@@ -46,8 +46,15 @@ public class McpService {
 
         // 调用 DeepSeek 分析
         Map<String, Object> aiAnalysis = callDeepSeekToAnalyze(userQuery);
-        
-        String extractedKeyword = (String) aiAnalysis.getOrDefault("keyword", "");
+
+        String tempKeyword = (String) aiAnalysis.getOrDefault("keyword", "");
+        // 如果关键词是通用词，直接置为空，防止污染文件名搜索
+        if (tempKeyword != null && (tempKeyword.contains("图片") || tempKeyword.contains("照片") || tempKeyword.contains("上传"))) {
+            tempKeyword = "";
+        }
+
+        String extractedKeyword = tempKeyword;
+        // String extractedKeyword = (String) aiAnalysis.getOrDefault("keyword", "");
         List<String> extractedTags = (List<String>) aiAnalysis.getOrDefault("tags", new ArrayList<>());
         String aiStartDateStr = (String) aiAnalysis.get("startDate");
         String aiEndDateStr = (String) aiAnalysis.get("endDate");
@@ -155,14 +162,24 @@ public class McpService {
         Map<String, Object> result = new HashMap<>();
         try {
             String today = LocalDate.now().toString();
+            // String systemPrompt = "你是一个图库搜索助手。当前日期: " + today + "。\n" +
+            //         "请分析输入，提取JSON：\n" +
+            //         "1. keyword: 除去时间的内容关键词\n" +
+            //         "2. tags: 除去时间的内容标签\n" +
+            //         "3. timeText: 用户描述时间的原始文本\n" +
+            //         "4. startDate/endDate: 时间范围(yyyy-MM-dd HH:mm:ss)\n\n" +
+            //         "示例: '2024年12月'\n" +
+            //         "返回: {\"keyword\":\"\",\"tags\":[],\"timeText\":\"2024年12月\",\"startDate\":\"2024-12-01 00:00:00\",\"endDate\":\"2024-12-31 23:59:59\"}";
             String systemPrompt = "你是一个图库搜索助手。当前日期: " + today + "。\n" +
                     "请分析输入，提取JSON：\n" +
-                    "1. keyword: 除去时间的内容关键词\n" +
+                    "1. keyword: 除去时间、以及'图片'、'照片'、'查找'、'搜索'、'上传'、'找一下'等无意义通用词汇后的实体关键词。如果剩余词汇无实际检索意义，请返回空字符串。\n" +
                     "2. tags: 除去时间的内容标签\n" +
                     "3. timeText: 用户描述时间的原始文本\n" +
                     "4. startDate/endDate: 时间范围(yyyy-MM-dd HH:mm:ss)\n\n" +
-                    "示例: '2024年12月'\n" +
-                    "返回: {\"keyword\":\"\",\"tags\":[],\"timeText\":\"2024年12月\",\"startDate\":\"2024-12-01 00:00:00\",\"endDate\":\"2024-12-31 23:59:59\"}";
+                    "示例1: '2024年12月'\n" +
+                    "返回: {\"keyword\":\"\",\"tags\":[],\"timeText\":\"2024年12月\",\"startDate\":\"2024-12-01 00:00:00\",\"endDate\":\"2024-12-31 23:59:59\"}\n\n" +
+                    "示例2: '找一下去年拍摄的红色阀门'\n" +
+                    "返回: {\"keyword\":\"阀门\",\"tags\":[\"红色\",\"阀门\"],\"timeText\":\"去年\",\"startDate\":\"...\",\"endDate\":\"...\"}";
 
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", "deepseek-chat");
