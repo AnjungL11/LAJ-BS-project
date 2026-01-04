@@ -4,7 +4,7 @@ import java.util.Date;
 
 public class JwtUtil {
     private static final String SECRET = "123456";
-    private static final long EXPIRATION = 86400000L; // 1天
+    private static final long EXPIRATION = 86400000L;
 
     public static String generateToken(Long userId, String username) {
         return Jwts.builder()
