@@ -12,7 +12,7 @@ import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin // 允许跨域
+@CrossOrigin
 public class AuthController {
 
     @Autowired
