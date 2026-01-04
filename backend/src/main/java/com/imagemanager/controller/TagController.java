@@ -39,7 +39,8 @@ public class TagController {
         tag.setTagName(name);
         tag.setTagType("custom");
         tag.setCoverType("color");
-        tag.setCoverColor("#409EFF"); // 默认蓝色
+        // 默认蓝色
+        tag.setCoverColor("#409EFF");
         tag.setSortOrder(0);
         tagMapper.insert(tag);
         return "success";
