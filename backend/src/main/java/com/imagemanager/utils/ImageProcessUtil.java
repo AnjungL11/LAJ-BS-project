@@ -18,19 +18,19 @@ public class ImageProcessUtil {
     // 生成缩略图
     public static void createThumbnail(File original, File thumbnail) throws IOException {
         Thumbnails.of(original)
-                .size(300, 300) // 固定尺寸
+                .size(300, 300)
                 .outputQuality(0.8)
                 .toFile(thumbnail);
     }
 
-    // EXIF日期格式通常为 "yyyy:MM:dd HH:mm:ss"
+    // EXIF日期格式
     private static final DateTimeFormatter EXIF_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy:MM:dd HH:mm:ss");
 
     // 提取EXIF信息
     public static ImageMetadata extractMetadata(File file) {
         ImageMetadata meta = new ImageMetadata();
         try {
-            // 获取 EXIF 元数据
+            // 获取EXIF元数据
             // org.apache.commons.imaging.common.ImageMetadata commonMeta = Imaging.getMetadata(file);
             var commonMeta = Imaging.getMetadata(file);
             if (commonMeta instanceof JpegImageMetadata) {
@@ -60,7 +60,7 @@ public class ImageProcessUtil {
                         }
                     }
                     
-                    // 获取GPS (Apache Commons Imaging自带helper)
+                    // 获取GPS信息
                     TiffImageMetadata.GPSInfo gps = exif.getGPS();
                     if (gps != null) {
                         meta.setGpsLatitude(gps.getLatitudeAsDegreesNorth());
