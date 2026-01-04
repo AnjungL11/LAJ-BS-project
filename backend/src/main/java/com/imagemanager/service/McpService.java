@@ -41,10 +41,10 @@ public class McpService {
 
     public Map<String, Object> executeSearch(String userQuery, List<String> tags, String cameraModel, String startDate, String endDate, Long userId) {
         
-        System.out.println("========== AI 深度搜索 ==========");
-        System.out.println("用户输入: " + userQuery);
+        // System.out.println("========== AI 深度搜索 ==========");
+        // System.out.println("用户输入: " + userQuery);
 
-        // 调用 DeepSeek 分析
+        // 调用DeepSeek分析
         Map<String, Object> aiAnalysis = callDeepSeekToAnalyze(userQuery);
 
         String tempKeyword = (String) aiAnalysis.getOrDefault("keyword", "");
@@ -60,7 +60,7 @@ public class McpService {
         String aiEndDateStr = (String) aiAnalysis.get("endDate");
         String timeText = (String) aiAnalysis.get("timeText");
 
-        System.out.println("AI 时间范围: " + aiStartDateStr + " ~ " + aiEndDateStr);
+        // System.out.println("AI 时间范围: " + aiStartDateStr + " ~ " + aiEndDateStr);
 
         // 解析时间
         LocalDateTime start = null;
@@ -132,7 +132,7 @@ public class McpService {
             results = imageMapper.selectList(wrapper);
         } catch (Exception e) {
             System.err.println("SQL 查询出错，可能是 metadata 列不存在或 JSON 语法不支持: " + e.getMessage());
-            // 如果出错，尝试降级查询（只查上传时间）
+            // 如果出错，尝试降级查询
             if (hasTimeCondition && start != null) {
                 QueryWrapper<Image> fallback = new QueryWrapper<>();
                 fallback.between("uploaded_at", start, end);
