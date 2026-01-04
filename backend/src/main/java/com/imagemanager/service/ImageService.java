@@ -105,7 +105,6 @@ public class ImageService {
         if (tags == null || tags.isEmpty()) return;
 
         for (String tagName : tags) {
-            // 复用已有的addSystemTag方法
             // AI识别出的标签会被标记为"system" 类型
             addSystemTag(imageId, tagName);
         }
@@ -155,7 +154,8 @@ public class ImageService {
         if (tag == null) {
             tag = new Tag();
             tag.setTagName(tagName);
-            tag.setTagType("custom"); // 用户自定义标签
+            // 用户自定义标签
+            tag.setTagType("custom");
             tagMapper.insert(tag);
         }
         // 建立关联
@@ -194,7 +194,8 @@ public class ImageService {
         if (tag == null) {
             tag = new Tag();
             tag.setTagName(tagName);
-            tag.setTagType("system"); // 标记为系统生成的标签
+            // 标记为系统生成的标签
+            tag.setTagType("system");
             tagMapper.insert(tag);
         }
 
@@ -246,7 +247,7 @@ public class ImageService {
                         .select("tag_name")
                         .in("tag_id", tagIds)
                 );
-                // 转换类型List<Object> -> List<String>
+                // 类型转换
                 List<String> names = tagNames.stream()
                         .map(Object::toString)
                         .toList();
@@ -271,7 +272,7 @@ public class ImageService {
         // 按照标签查询
         // 查找拥有指定标签的image_id对应的图片
         if (req.getTags() != null && !req.getTags().isEmpty()) {
-            // 拼接SQL语句：SELECT image_id FROM image_tags WHERE tag_id IN (SELECT tag_id FROM tags WHERE tag_name IN ('tag1', 'tag2'))
+            // 拼接SQL语句
             // String tagsStr = "'" + String.join("','", req.getTags()) + "'";
             // 单引号转义防止SQL注入
             List<String> safeTags = req.getTags().stream()
@@ -348,7 +349,7 @@ public class ImageService {
                     .eq("image_id", id)
                     .eq("user_id", userId));
             if (img != null) {
-                // 删除物理文件(包括原图和缩略图)
+                // 删除物理文件，包括原图和缩略图
                 deleteFile(img.getStoragePath());
                 deleteFile(img.getThumbnailPath());
                 // 删除数据库关联数据
