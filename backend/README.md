@@ -8,6 +8,10 @@
 ```powershell
 cd backend
 ```
+安装相关依赖。
+```powershell
+mvn clean install -DskipTests
+```
 然后运行如下命令启动后端。
 ```powershell
 mvn spring-boot:run
